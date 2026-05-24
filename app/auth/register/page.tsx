@@ -1,13 +1,50 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import Link from 'next/link';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export default function RegisterPage() {
-  const [form, setForm]   = useState({ name: '', email: '', phone: '', password: '' });
+  const router = useRouter();
+  const [form, setForm]         = useState({ name: '', email: '', phone: '', password: '' });
   const [showPass, setShowPass] = useState(false);
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
+
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, form.email, form.password);
+      await updateProfile(cred.user, { displayName: form.name });
+      router.replace('/');
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code ?? '';
+      if (code === 'auth/email-already-in-use') {
+        setError('This email is already registered. Please sign in.');
+      } else if (code === 'auth/weak-password') {
+        setError('Password is too weak. Use at least 6 characters.');
+      } else if (code === 'auth/invalid-email') {
+        setError('Please enter a valid email address.');
+      } else {
+        setError('Registration failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center bg-stone-50 py-12">
@@ -22,7 +59,13 @@ export default function RegisterPage() {
             <p className="mt-1 text-sm text-stone-500">Join thousands of happy customers</p>
           </div>
 
-          <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
+          {error && (
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             <label className="block">
               <span className="mb-1.5 block text-xs font-semibold text-stone-700">Full Name</span>
               <input
@@ -68,7 +111,7 @@ export default function RegisterPage() {
                   type={showPass ? 'text' : 'password'}
                   value={form.password}
                   onChange={set('password')}
-                  placeholder="Create a strong password"
+                  placeholder="Min. 6 characters"
                   required
                   autoComplete="new-password"
                   className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 pr-12 text-sm text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white"
@@ -76,7 +119,6 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  aria-label={showPass ? 'Hide password' : 'Show password'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-stone-500 hover:text-stone-700 transition-colors"
                 >
                   {showPass ? 'Hide' : 'Show'}
@@ -86,9 +128,10 @@ export default function RegisterPage() {
 
             <button
               type="submit"
-              className="w-full rounded-full bg-stone-900 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-700 shadow-card"
+              disabled={loading}
+              className="w-full rounded-full bg-stone-900 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-700 shadow-card disabled:opacity-60"
             >
-              Create Account
+              {loading ? 'Creating account…' : 'Create Account'}
             </button>
           </form>
 

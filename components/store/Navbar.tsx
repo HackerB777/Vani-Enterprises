@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 
@@ -61,12 +63,21 @@ const navLinks = [
 ];
 
 export function Navbar() {
-  const cartCount    = useCartStore((s) => s.items.reduce((n, i) => n + i.quantity, 0));
+  const cartCount     = useCartStore((s) => s.items.reduce((n, i) => n + i.quantity, 0));
   const wishlistCount = useWishlistStore((s) => s.items.length);
   const [scrolled, setScrolled]     = useState(false);
   const [menuOpen, setMenuOpen]     = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery]           = useState('');
+  const [userName, setUserName]     = useState<string | null>(null);
+  const [userMenu, setUserMenu]     = useState(false);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setUserName(user ? (user.displayName || user.email?.split('@')[0] || 'Account') : null);
+    });
+    return unsub;
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -192,13 +203,42 @@ export function Navbar() {
               </Link>
 
               {/* Account */}
-              <Link
-                href="/auth/login"
-                aria-label="Account"
-                className="hidden rounded-full p-2.5 text-stone-600 transition hover:bg-stone-100 hover:text-stone-900 sm:block"
-              >
-                <UserIcon />
-              </Link>
+              <div className="relative hidden sm:block">
+                {userName ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setUserMenu(!userMenu)}
+                      className="flex items-center gap-1.5 rounded-full bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-700"
+                    >
+                      <UserIcon />
+                      <span className="max-w-[80px] truncate">{userName}</span>
+                    </button>
+                    {userMenu && (
+                      <div className="absolute right-0 top-10 z-50 w-44 rounded-2xl border border-stone-100 bg-white py-1 shadow-xl">
+                        <Link href="/orders" onClick={() => setUserMenu(false)} className="block px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50">My Orders</Link>
+                        <Link href="/wishlist" onClick={() => setUserMenu(false)} className="block px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50">Wishlist</Link>
+                        <div className="my-1 border-t border-stone-100" />
+                        <button
+                          type="button"
+                          onClick={() => { signOut(auth); setUserMenu(false); }}
+                          className="block w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
+                        >
+                          Sign Out
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <Link
+                    href="/auth/login"
+                    aria-label="Account"
+                    className="rounded-full p-2.5 text-stone-600 transition hover:bg-stone-100 hover:text-stone-900 block"
+                  >
+                    <UserIcon />
+                  </Link>
+                )}
+              </div>
 
               {/* Mobile hamburger */}
               <button
@@ -262,20 +302,28 @@ export function Navbar() {
                   </Link>
                 ))}
                 <div className="my-2 border-t border-stone-100" />
-                <Link
-                  href="/auth/login"
-                  onClick={() => setMenuOpen(false)}
-                  className="rounded-xl px-4 py-3 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  href="/auth/register"
-                  onClick={() => setMenuOpen(false)}
-                  className="rounded-xl px-4 py-3 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
-                >
-                  Create account
-                </Link>
+                {userName ? (
+                  <>
+                    <p className="px-4 py-2 text-xs font-semibold text-stone-400 uppercase tracking-wider">Hi, {userName}</p>
+                    <Link href="/orders" onClick={() => setMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-medium text-stone-700 transition hover:bg-stone-50">My Orders</Link>
+                    <button
+                      type="button"
+                      onClick={() => { signOut(auth); setMenuOpen(false); }}
+                      className="w-full rounded-xl px-4 py-3 text-left text-sm font-medium text-red-600 transition hover:bg-red-50"
+                    >
+                      Sign Out
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/auth/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-medium text-stone-700 transition hover:bg-stone-50">
+                      Sign in
+                    </Link>
+                    <Link href="/auth/register" onClick={() => setMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-medium text-stone-700 transition hover:bg-stone-50">
+                      Create account
+                    </Link>
+                  </>
+                )}
               </nav>
             </div>
           </div>
