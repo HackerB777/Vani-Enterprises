@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #fafaf9;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.container {
+  width: min(1200px, 100% - 2rem);
+  margin-inline: auto;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f5f5f4; }
+::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
+
+/* Remove number input arrows */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type='number'] { -moz-appearance: textfield; appearance: textfield; }
+
+/* Logo blend — makes the black JPEG background invisible on dark containers */
+.logo-screen { mix-blend-mode: screen; }
+
+/* Scroll animation base state */
+.anim-hidden {
+  opacity: 0;
+  will-change: opacity, transform;
+}
+
+/* Shimmer skeleton */
+.skeleton {
+  background: linear-gradient(90deg, #e7e5e4 25%, #d6d3d1 50%, #e7e5e4 75%);
+  background-size: 400% 100%;
+  animation: shimmer 1.8s linear infinite;
+}
+
+/* Progress bar for hero slider — use scaleX for GPU-composited animation */
+@keyframes progressBar {
+  from { transform: scaleX(0) }
+  to   { transform: scaleX(1) }
+}
+
+/* Gradient text */
+.text-gradient {
+  background: linear-gradient(135deg, #f97316, #ea580c, #c2410c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.text-gradient-gold {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b, #d97706);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glass morphism utility */
+.glass {
+  background: rgba(255,255,255,0.08);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.glass-dark {
+  background: rgba(0,0,0,0.25);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* Smooth page transition */
+main { animation: fadeIn 0.3s ease-in-out; }
+
+/* Admin sidebar gradient */
+.admin-sidebar {
+  background: linear-gradient(180deg, #1c0a00 0%, #0f0f0f 50%, #0a0a0a 100%);
+}
+
+/* Focus ring */
+*:focus-visible {
+  outline: 2px solid #c2410c;
+  outline-offset: 2px;
+  border-radius: 6px;
+}

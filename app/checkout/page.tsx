@@ -1,0 +1,271 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useCartStore } from '@/store/cartStore';
+
+const STATES = ['Andhra Pradesh', 'Karnataka', 'Kerala', 'Maharashtra', 'Rajasthan', 'Tamil Nadu', 'Telangana', 'Uttar Pradesh', 'West Bengal', 'Delhi', 'Other'];
+
+interface Address {
+  name: string;
+  email: string;
+  phone: string;
+  addressLine1: string;
+  city: string;
+  state: string;
+  pincode: string;
+}
+
+const EMPTY: Address = { name: '', email: '', phone: '', addressLine1: '', city: '', state: '', pincode: '' };
+
+function Field({
+  label, type = 'text', value, onChange, placeholder, required = true,
+}: {
+  label: string; type?: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; required?: boolean;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-semibold text-stone-700">
+        {label}{required && <span className="ml-0.5 text-red-500">*</span>}
+      </span>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        required={required}
+        className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white"
+      />
+    </label>
+  );
+}
+
+export default function CheckoutPage() {
+  const router     = useRouter();
+  const items      = useCartStore((s) => s.items);
+  const clearCart  = useCartStore((s) => s.clearCart);
+  const [addr, setAddr]   = useState<Address>(EMPTY);
+  const [payment, setPayment] = useState<'razorpay' | 'cod'>('razorpay');
+  const [coupon, setCoupon]   = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState('');
+
+  const subtotal = useMemo(() => items.reduce((s, i) => s + i.product.price * i.quantity, 0), [items]);
+  const shipping = subtotal >= 999 || subtotal === 0 ? 0 : 99;
+  const tax      = Math.round(subtotal * 0.05);
+  const total    = subtotal + shipping + tax;
+
+  const set = (field: keyof Address) => (val: string) => setAddr((a) => ({ ...a, [field]: val }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (items.length === 0) { setError('Your cart is empty.'); return; }
+    const missing = (Object.keys(EMPTY) as (keyof Address)[]).find((k) => !addr[k].trim());
+    if (missing) { setError('Please fill in all required fields.'); return; }
+
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: items.map((i) => ({ product: i.product, quantity: i.quantity })), shippingAddress: addr, paymentMethod: payment }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Unable to place order.');
+      clearCart();
+      router.push(`/orders/${data.order.id}`);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-stone-50">
+      <div className="border-b border-stone-200 bg-white">
+        <div className="container py-8">
+          <p className="text-xs font-bold uppercase tracking-widest text-brand-600">Final step</p>
+          <h1 className="mt-1 font-display text-3xl font-bold text-stone-900">Checkout</h1>
+        </div>
+      </div>
+
+      <div className="container py-8">
+        {items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-stone-300 bg-white py-24 text-center">
+            <p className="font-display text-xl font-bold text-stone-900">Your cart is empty</p>
+            <Link href="/shop" className="mt-4 rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700 transition">
+              Shop Now
+            </Link>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
+              {/* Left */}
+              <div className="space-y-6">
+                {/* Shipping details */}
+                <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-soft">
+                  <h2 className="font-display text-lg font-bold text-stone-900 mb-5">Shipping Details</h2>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Full Name"     value={addr.name}         onChange={set('name')}         placeholder="Priya Sharma" />
+                    <Field label="Email Address" type="email" value={addr.email} onChange={set('email')} placeholder="priya@example.com" />
+                    <Field label="Phone Number"  type="tel"  value={addr.phone} onChange={set('phone')} placeholder="9999999999" />
+                    <Field label="Pincode"       value={addr.pincode}     onChange={set('pincode')}     placeholder="600001" />
+                  </div>
+                  <div className="mt-4">
+                    <Field label="Address Line 1" value={addr.addressLine1} onChange={set('addressLine1')} placeholder="Flat 4B, ABC Apartments, MG Road" />
+                  </div>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <Field label="City" value={addr.city} onChange={set('city')} placeholder="Chennai" />
+                    <label className="block">
+                      <span className="mb-1.5 block text-xs font-semibold text-stone-700">State<span className="ml-0.5 text-red-500">*</span></span>
+                      <select
+                        aria-label="Select state"
+                        value={addr.state}
+                        onChange={(e) => set('state')(e.target.value)}
+                        className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white"
+                        required
+                      >
+                        <option value="">Select state</option>
+                        {STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Payment */}
+                <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-soft">
+                  <h2 className="font-display text-lg font-bold text-stone-900 mb-5">Payment Method</h2>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {([
+                      { id: 'razorpay', label: 'Pay Online', sub: 'UPI · Cards · Wallets · Net Banking', icon: '🏦' },
+                      { id: 'cod',      label: 'Cash on Delivery', sub: 'Pay when your order arrives', icon: '💵' },
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setPayment(opt.id)}
+                        className={`flex items-start gap-3 rounded-xl border-2 p-4 text-left transition-all ${
+                          payment === opt.id
+                            ? 'border-brand-600 bg-brand-50'
+                            : 'border-stone-200 hover:border-stone-300'
+                        }`}
+                      >
+                        <span className="text-2xl">{opt.icon}</span>
+                        <div>
+                          <p className="font-semibold text-stone-900">{opt.label}</p>
+                          <p className="mt-0.5 text-xs text-stone-500">{opt.sub}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Coupon */}
+                <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-soft">
+                  <h2 className="font-display text-lg font-bold text-stone-900 mb-4">Coupon Code</h2>
+                  <div className="flex gap-3">
+                    <input
+                      type="text"
+                      value={coupon}
+                      onChange={(e) => setCoupon(e.target.value.toUpperCase())}
+                      placeholder="Enter coupon code"
+                      aria-label="Coupon code"
+                      className="flex-1 rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm uppercase tracking-wider text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white placeholder:normal-case placeholder:tracking-normal"
+                    />
+                    <button
+                      type="button"
+                      className="rounded-xl border border-stone-200 bg-stone-50 px-5 py-2.5 text-sm font-semibold text-stone-700 transition hover:bg-stone-100"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs text-stone-400">Try <span className="font-mono font-semibold text-brand-600">VANI10</span> for 10% off your first order.</p>
+                </div>
+
+                {error && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                    <p className="text-sm font-medium text-red-700">{error}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Order summary sidebar */}
+              <div className="space-y-4 lg:sticky lg:top-24 self-start">
+                <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-soft">
+                  <h2 className="font-display text-lg font-bold text-stone-900 mb-4">Order Summary</h2>
+
+                  <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                    {items.map((item) => (
+                      <div key={item.product.slug} className="flex items-center gap-3 text-sm">
+                        <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-stone-100" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-stone-900 truncate">{item.product.name}</p>
+                          <p className="text-stone-500">Qty {item.quantity}</p>
+                        </div>
+                        <p className="font-semibold text-stone-900 flex-shrink-0">
+                          ₹{(item.product.price * item.quantity).toLocaleString('en-IN')}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="my-4 border-t border-stone-100" />
+
+                  <div className="space-y-2.5 text-sm">
+                    <div className="flex justify-between text-stone-600">
+                      <span>Subtotal</span>
+                      <span>₹{subtotal.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex justify-between text-stone-600">
+                      <span>Shipping</span>
+                      {shipping === 0 ? <span className="font-semibold text-green-600">Free</span> : <span>₹{shipping}</span>}
+                    </div>
+                    <div className="flex justify-between text-stone-600">
+                      <span>Tax (5%)</span>
+                      <span>₹{tax.toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
+
+                  <div className="my-4 border-t border-stone-100" />
+
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-stone-900">Total</span>
+                    <span className="font-display text-2xl font-bold text-stone-900">₹{total.toLocaleString('en-IN')}</span>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="mt-5 w-full rounded-full bg-stone-900 py-3.5 text-sm font-semibold text-white shadow-card transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {loading ? 'Placing Order…' : `Place Order · ₹${total.toLocaleString('en-IN')}`}
+                  </button>
+
+                  <p className="mt-3 text-center text-xs text-stone-400">
+                    By placing your order you agree to our{' '}
+                    <Link href="/contact" className="text-brand-600 hover:underline">terms & conditions</Link>.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-stone-200 bg-white px-5 py-4">
+                  <div className="space-y-2">
+                    {['Secure 256-bit SSL payment', 'Razorpay PCI-DSS compliant', 'Data never stored on our servers'].map((item) => (
+                      <p key={item} className="flex items-center gap-2 text-xs text-stone-500">
+                        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className="text-green-500" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        {item}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
