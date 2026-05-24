@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import Link from 'next/link';
 import { getDashboardStats, getRecentOrders, getLast7DaysRevenue, getStatusBreakdown } from '@/lib/adminStats';
 import { STATUS_LABELS } from '@/lib/orders';
