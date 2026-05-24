@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { adminLogin } from '@/lib/adminAuth';
+import { signIn } from 'next-auth/react';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -19,10 +19,14 @@ export default function AdminLoginPage() {
     setError('');
     setLoading(true);
     try {
-      await adminLogin(email, password);
-      router.replace('/admin');
+      const result = await signIn('credentials', { email, password, redirect: false });
+      if (result?.error) {
+        setError('Invalid email or password. Please try again.');
+      } else {
+        router.replace('/admin');
+      }
     } catch {
-      setError('Invalid email or password. Please try again.');
+      setError('Sign in failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -31,7 +35,6 @@ export default function AdminLoginPage() {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-stone-950 px-4">
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="mb-8 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.jpg" alt="Vani Enterprises" className="mx-auto h-14 w-auto rounded-xl" />
@@ -50,44 +53,27 @@ export default function AdminLoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <label className="block">
               <span className="mb-1.5 block text-xs font-semibold text-stone-400">Email address</span>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@vanienterprises.com"
-                required
-                autoComplete="email"
-                className="w-full rounded-xl border border-stone-700 bg-stone-800 px-4 py-3 text-sm text-white placeholder-stone-600 outline-none transition focus:border-brand-500 focus:bg-stone-750"
-              />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@vanienterprises.com" required autoComplete="email"
+                className="w-full rounded-xl border border-stone-700 bg-stone-800 px-4 py-3 text-sm text-white placeholder-stone-600 outline-none transition focus:border-brand-500" />
             </label>
 
             <label className="block">
               <span className="mb-1.5 block text-xs font-semibold text-stone-400">Password</span>
               <div className="relative">
-                <input
-                  type={showPass ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  required
-                  autoComplete="current-password"
-                  className="w-full rounded-xl border border-stone-700 bg-stone-800 px-4 py-3 pr-14 text-sm text-white placeholder-stone-600 outline-none transition focus:border-brand-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-stone-500 hover:text-stone-300 transition-colors"
-                >
+                <input type={showPass ? 'text' : 'password'} value={password}
+                  onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password"
+                  required autoComplete="current-password"
+                  className="w-full rounded-xl border border-stone-700 bg-stone-800 px-4 py-3 pr-14 text-sm text-white placeholder-stone-600 outline-none transition focus:border-brand-500" />
+                <button type="button" onClick={() => setShowPass(!showPass)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-stone-500 hover:text-stone-300 transition-colors">
                   {showPass ? 'Hide' : 'Show'}
                 </button>
               </div>
             </label>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-full bg-brand-600 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
-            >
+            <button type="submit" disabled={loading}
+              className="w-full rounded-full bg-brand-600 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60 disabled:cursor-not-allowed mt-2">
               {loading ? 'Signing in…' : 'Sign In'}
             </button>
           </form>

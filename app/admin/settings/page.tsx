@@ -3,11 +3,6 @@
 export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
-import {
-  changeAdminPassword,
-  getAdminConfig,
-  saveAdminConfig,
-} from '@/lib/adminAuth';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -27,28 +22,28 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const inputCls =
-  'w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white';
+const inputCls = 'w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white';
 
 export default function AdminSettingsPage() {
-  /* ── Password change ─────────────────────────────── */
   const [currentPw, setCurrentPw]   = useState('');
   const [newPw, setNewPw]           = useState('');
   const [confirmPw, setConfirmPw]   = useState('');
   const [pwStatus, setPwStatus]     = useState<{ ok: boolean; msg: string } | null>(null);
   const [pwLoading, setPwLoading]   = useState(false);
 
-  /* ── Contact numbers ─────────────────────────────── */
   const [adminMobile, setAdminMobile]         = useState('');
   const [developerMobile, setDeveloperMobile] = useState('');
   const [numStatus, setNumStatus]             = useState<{ ok: boolean; msg: string } | null>(null);
   const [numLoading, setNumLoading]           = useState(false);
 
   useEffect(() => {
-    getAdminConfig().then((cfg) => {
-      setAdminMobile(cfg.adminMobile ?? '');
-      setDeveloperMobile(cfg.developerMobile ?? '');
-    });
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then((data) => {
+        setAdminMobile(data.adminMobile ?? '');
+        setDeveloperMobile(data.developerMobile ?? '');
+      })
+      .catch(() => {});
   }, []);
 
   async function handlePasswordChange(e: React.FormEvent) {
@@ -64,12 +59,17 @@ export default function AdminSettingsPage() {
     }
     setPwLoading(true);
     try {
-      await changeAdminPassword(currentPw, newPw);
+      const res  = await fetch('/api/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed to update password.');
       setPwStatus({ ok: true, msg: 'Password updated successfully.' });
       setCurrentPw(''); setNewPw(''); setConfirmPw('');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to update password.';
-      setPwStatus({ ok: false, msg: msg.includes('wrong-password') ? 'Current password is incorrect.' : msg });
+      setPwStatus({ ok: false, msg: err instanceof Error ? err.message : 'Failed to update password.' });
     } finally {
       setPwLoading(false);
     }
@@ -80,7 +80,12 @@ export default function AdminSettingsPage() {
     setNumStatus(null);
     setNumLoading(true);
     try {
-      await saveAdminConfig({ adminMobile, developerMobile });
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminMobile, developerMobile }),
+      });
+      if (!res.ok) throw new Error('Failed to save.');
       setNumStatus({ ok: true, msg: 'Contact numbers saved.' });
     } catch {
       setNumStatus({ ok: false, msg: 'Failed to save. Try again.' });
@@ -96,41 +101,19 @@ export default function AdminSettingsPage() {
         <h1 className="font-display text-2xl font-bold text-stone-800">Settings</h1>
       </div>
 
-      {/* ── Change Password ────────────────────────── */}
       <Section title="Change Password">
         <form onSubmit={handlePasswordChange} className="space-y-4">
           <Field label="Current Password">
-            <input
-              type="password"
-              value={currentPw}
-              onChange={(e) => setCurrentPw(e.target.value)}
-              placeholder="Enter current password"
-              required
-              autoComplete="current-password"
-              className={inputCls}
-            />
+            <input type="password" value={currentPw} onChange={(e) => setCurrentPw(e.target.value)}
+              placeholder="Enter current password" required autoComplete="current-password" className={inputCls} />
           </Field>
           <Field label="New Password">
-            <input
-              type="password"
-              value={newPw}
-              onChange={(e) => setNewPw(e.target.value)}
-              placeholder="Min. 8 characters"
-              required
-              autoComplete="new-password"
-              className={inputCls}
-            />
+            <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)}
+              placeholder="Min. 8 characters" required autoComplete="new-password" className={inputCls} />
           </Field>
           <Field label="Confirm New Password">
-            <input
-              type="password"
-              value={confirmPw}
-              onChange={(e) => setConfirmPw(e.target.value)}
-              placeholder="Repeat new password"
-              required
-              autoComplete="new-password"
-              className={inputCls}
-            />
+            <input type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)}
+              placeholder="Repeat new password" required autoComplete="new-password" className={inputCls} />
           </Field>
 
           {pwStatus && (
@@ -139,39 +122,23 @@ export default function AdminSettingsPage() {
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={pwLoading}
-            className="rounded-full bg-stone-900 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
-          >
+          <button type="submit" disabled={pwLoading}
+            className="rounded-full bg-stone-900 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60">
             {pwLoading ? 'Updating…' : 'Update Password'}
           </button>
         </form>
       </Section>
 
-      {/* ── Contact Numbers ────────────────────────── */}
       <Section title="Contact Numbers">
-        <p className="mb-4 text-xs text-stone-500">
-          These numbers are used for WhatsApp notifications and customer support.
-        </p>
+        <p className="mb-4 text-xs text-stone-500">These numbers are used for WhatsApp notifications and customer support.</p>
         <form onSubmit={handleNumbersSave} className="space-y-4">
           <Field label="Admin Mobile Number">
-            <input
-              type="tel"
-              value={adminMobile}
-              onChange={(e) => setAdminMobile(e.target.value)}
-              placeholder="+91 98765 43210"
-              className={inputCls}
-            />
+            <input type="tel" value={adminMobile} onChange={(e) => setAdminMobile(e.target.value)}
+              placeholder="+91 98765 43210" className={inputCls} />
           </Field>
           <Field label="Developer Mobile Number">
-            <input
-              type="tel"
-              value={developerMobile}
-              onChange={(e) => setDeveloperMobile(e.target.value)}
-              placeholder="+91 98765 43210"
-              className={inputCls}
-            />
+            <input type="tel" value={developerMobile} onChange={(e) => setDeveloperMobile(e.target.value)}
+              placeholder="+91 98765 43210" className={inputCls} />
           </Field>
 
           {numStatus && (
@@ -180,11 +147,8 @@ export default function AdminSettingsPage() {
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={numLoading}
-            className="rounded-full bg-stone-900 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
-          >
+          <button type="submit" disabled={numLoading}
+            className="rounded-full bg-stone-900 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60">
             {numLoading ? 'Saving…' : 'Save Numbers'}
           </button>
         </form>

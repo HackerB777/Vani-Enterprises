@@ -14,12 +14,6 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['zustand'],
   },
-  webpack(config, { isServer }) {
-    if (isServer) {
-      config.ignoreWarnings = [{ module: /node_modules\/@protobufjs\/inquire/ }];
-    }
-    return config;
-  },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },

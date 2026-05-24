@@ -2,8 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { useSession, signOut } from 'next-auth/react';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 
@@ -65,19 +64,15 @@ const navLinks = [
 export function Navbar() {
   const cartCount     = useCartStore((s) => s.items.reduce((n, i) => n + i.quantity, 0));
   const wishlistCount = useWishlistStore((s) => s.items.length);
+  const { data: session } = useSession();
+  const userName = session?.user
+    ? (session.user.name || session.user.email?.split('@')[0] || 'Account')
+    : null;
   const [scrolled, setScrolled]     = useState(false);
   const [menuOpen, setMenuOpen]     = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery]           = useState('');
-  const [userName, setUserName]     = useState<string | null>(null);
   const [userMenu, setUserMenu]     = useState(false);
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      setUserName(user ? (user.displayName || user.email?.split('@')[0] || 'Account') : null);
-    });
-    return unsub;
-  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -221,7 +216,7 @@ export function Navbar() {
                         <div className="my-1 border-t border-stone-100" />
                         <button
                           type="button"
-                          onClick={() => { signOut(auth); setUserMenu(false); }}
+                          onClick={() => { signOut(); setUserMenu(false); }}
                           className="block w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
                         >
                           Sign Out
@@ -308,7 +303,7 @@ export function Navbar() {
                     <Link href="/orders" onClick={() => setMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-medium text-stone-700 transition hover:bg-stone-50">My Orders</Link>
                     <button
                       type="button"
-                      onClick={() => { signOut(auth); setMenuOpen(false); }}
+                      onClick={() => { signOut(); setMenuOpen(false); }}
                       className="w-full rounded-xl px-4 py-3 text-left text-sm font-medium text-red-600 transition hover:bg-red-50"
                     >
                       Sign Out

@@ -1,25 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import type { OrderStatus } from '@/lib/orders';
+import { connectDB } from '@/lib/mongodb';
+import { OrderModel } from '@/lib/models/Order';
 
-async function getStorage() {
-  if (process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
-    const { getFirestoreOrder, updateFirestoreOrder } = await import('@/lib/firestoreOrders');
-    return { getOrder: getFirestoreOrder, updateOrder: updateFirestoreOrder };
-  }
-  const { orders } = await import('@/lib/orderStorage');
-  return {
-    getOrder: async (id: string) => orders.find((o) => o.id === id) ?? null,
-    updateOrder: async (id: string, updates: Record<string, unknown>) => {
-      const idx = orders.findIndex((o) => o.id === id);
-      if (idx !== -1) Object.assign(orders[idx], updates);
-    },
-  };
-}
-
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { getOrder } = await getStorage();
-    const order = await getOrder(params.id);
+    await connectDB();
+    const order = await OrderModel.findOne({ id: params.id }).lean();
     if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     return NextResponse.json({ order });
   } catch {
@@ -27,7 +14,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   }
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const body = await request.json();
     const { status, trackingId, courier, notes, paymentStatus } = body as {
@@ -42,12 +29,15 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     if (notes         !== undefined) updates.notes         = notes;
     if (paymentStatus !== undefined) updates.paymentStatus = paymentStatus;
 
-    const { getOrder, updateOrder } = await getStorage();
-    const existing = await getOrder(params.id);
-    if (!existing) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    await connectDB();
+    const order = await OrderModel.findOneAndUpdate(
+      { id: params.id },
+      { $set: updates },
+      { new: true }
+    ).lean();
 
-    await updateOrder(params.id, updates);
-    return NextResponse.json({ order: { ...existing, ...updates } });
+    if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    return NextResponse.json({ order });
   } catch {
     return NextResponse.json({ error: 'Failed to update order' }, { status: 500 });
   }

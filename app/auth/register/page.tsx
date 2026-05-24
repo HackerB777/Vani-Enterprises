@@ -5,8 +5,7 @@ export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { signIn } from 'next-auth/react';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -27,20 +26,21 @@ export default function RegisterPage() {
     }
     setLoading(true);
     try {
-      const cred = await createUserWithEmailAndPassword(auth, form.email, form.password);
-      await updateProfile(cred.user, { displayName: form.name });
-      router.replace('/');
-    } catch (err: unknown) {
-      const code = (err as { code?: string }).code ?? '';
-      if (code === 'auth/email-already-in-use') {
-        setError('This email is already registered. Please sign in.');
-      } else if (code === 'auth/weak-password') {
-        setError('Password is too weak. Use at least 6 characters.');
-      } else if (code === 'auth/invalid-email') {
-        setError('Please enter a valid email address.');
-      } else {
-        setError('Registration failed. Please try again.');
+      const res  = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? 'Registration failed.');
+        return;
       }
+      // Auto sign in after registration
+      await signIn('credentials', { email: form.email, password: form.password, redirect: false });
+      router.replace('/');
+    } catch {
+      setError('Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -60,77 +60,46 @@ export default function RegisterPage() {
           </div>
 
           {error && (
-            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
-            </div>
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <label className="block">
               <span className="mb-1.5 block text-xs font-semibold text-stone-700">Full Name</span>
-              <input
-                type="text"
-                value={form.name}
-                onChange={set('name')}
-                placeholder="Priya Sharma"
-                required
-                autoComplete="name"
-                className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white"
-              />
+              <input type="text" value={form.name} onChange={set('name')} placeholder="Priya Sharma"
+                required autoComplete="name"
+                className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white" />
             </label>
 
             <label className="block">
               <span className="mb-1.5 block text-xs font-semibold text-stone-700">Email Address</span>
-              <input
-                type="email"
-                value={form.email}
-                onChange={set('email')}
-                placeholder="you@example.com"
-                required
-                autoComplete="email"
-                className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white"
-              />
+              <input type="email" value={form.email} onChange={set('email')} placeholder="you@example.com"
+                required autoComplete="email"
+                className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white" />
             </label>
 
             <label className="block">
               <span className="mb-1.5 block text-xs font-semibold text-stone-700">Phone Number</span>
-              <input
-                type="tel"
-                value={form.phone}
-                onChange={set('phone')}
-                placeholder="9999999999"
+              <input type="tel" value={form.phone} onChange={set('phone')} placeholder="9999999999"
                 autoComplete="tel"
-                className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white"
-              />
+                className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white" />
             </label>
 
             <label className="block">
               <span className="mb-1.5 block text-xs font-semibold text-stone-700">Password</span>
               <div className="relative">
-                <input
-                  type={showPass ? 'text' : 'password'}
-                  value={form.password}
-                  onChange={set('password')}
-                  placeholder="Min. 6 characters"
-                  required
-                  autoComplete="new-password"
-                  className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 pr-12 text-sm text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-stone-500 hover:text-stone-700 transition-colors"
-                >
+                <input type={showPass ? 'text' : 'password'} value={form.password} onChange={set('password')}
+                  placeholder="Min. 6 characters" required autoComplete="new-password"
+                  className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 pr-12 text-sm text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white" />
+                <button type="button" onClick={() => setShowPass(!showPass)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-stone-500 hover:text-stone-700 transition-colors">
                   {showPass ? 'Hide' : 'Show'}
                 </button>
               </div>
             </label>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-full bg-stone-900 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-700 shadow-card disabled:opacity-60"
-            >
+            <button type="submit" disabled={loading}
+              className="w-full rounded-full bg-stone-900 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-700 shadow-card disabled:opacity-60">
               {loading ? 'Creating account…' : 'Create Account'}
             </button>
           </form>
@@ -144,9 +113,7 @@ export default function RegisterPage() {
 
           <p className="mt-4 text-center text-sm text-stone-500">
             Already have an account?{' '}
-            <Link href="/auth/login" className="font-semibold text-brand-600 hover:text-brand-700 transition-colors">
-              Sign in
-            </Link>
+            <Link href="/auth/login" className="font-semibold text-brand-600 hover:text-brand-700 transition-colors">Sign in</Link>
           </p>
         </div>
       </div>

@@ -6,10 +6,7 @@ import { useState, useRef, useCallback, useId, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { categories } from '@/lib/products';
-import {
-  getFSProductBySlug, updateFSProduct, deleteFSProduct,
-  uploadProductImage, type FSProduct,
-} from '@/lib/firestoreProducts';
+import type { IProduct } from '@/lib/models/Product';
 
 interface ImagePreview {
   id:          string;
@@ -35,7 +32,7 @@ export default function EditProduct() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
-  const [product, setProduct]   = useState<FSProduct | null>(null);
+  const [product, setProduct]   = useState<IProduct | null>(null);
   const [loading, setLoading]   = useState(true);
   const [saving, setSaving]     = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -51,40 +48,42 @@ export default function EditProduct() {
   });
   const [details, setDetails]   = useState<string[]>(['']);
 
-  /* ── Load product from Firestore ── */
+  /* ── Load product from MongoDB ── */
   useEffect(() => {
-    getFSProductBySlug(slug).then((p) => {
-      if (p) {
-        setProduct(p);
-        setForm({
-          name:          p.name,
-          slug:          p.slug,
-          category:      p.category,
-          subcategory:   p.subcategory  ?? '',
-          shortDesc:     p.description,
-          longDesc:      p.longDesc     ?? '',
-          price:         String(p.price),
-          originalPrice: p.originalPrice ? String(p.originalPrice) : '',
-          stock:         p.stock !== undefined ? String(p.stock) : '',
-          isFeatured:    p.isFeatured    ?? false,
-          isNewArrival:  p.isNewArrival  ?? false,
-          isBestSeller:  p.isBestSeller  ?? false,
-          isOnSale:      p.isOnSale      ?? false,
-        });
-        setDetails(p.details?.length ? p.details : ['']);
-        setImages(
-          (p.images ?? []).map((url, i) => ({
-            id: `existing-${i}`,
-            url,
-            name:        `image-${i + 1}`,
-            size:        0,
-            isPrimary:   i === 0,
-            isExisting:  true,
-          }))
-        );
-      }
-      setLoading(false);
-    });
+    fetch(`/api/products/${slug}`)
+      .then((r) => r.json())
+      .then((p: IProduct) => {
+        if (p && p.slug) {
+          setProduct(p);
+          setForm({
+            name:          p.name,
+            slug:          p.slug,
+            category:      p.category,
+            subcategory:   '',
+            shortDesc:     p.description ?? '',
+            longDesc:      '',
+            price:         String(p.price),
+            originalPrice: p.originalPrice ? String(p.originalPrice) : '',
+            stock:         p.stock !== undefined ? String(p.stock) : '',
+            isFeatured:    p.isFeatured    ?? false,
+            isNewArrival:  p.isNewArrival  ?? false,
+            isBestSeller:  p.isBestSeller  ?? false,
+            isOnSale:      p.isOnSale      ?? false,
+          });
+          setDetails(['']);
+          setImages(
+            (p.images ?? []).map((url, i) => ({
+              id: `existing-${i}`,
+              url,
+              name:       `image-${i + 1}`,
+              size:       0,
+              isPrimary:  i === 0,
+              isExisting: true,
+            }))
+          );
+        }
+      })
+      .finally(() => setLoading(false));
   }, [slug]);
 
   const set = (k: string, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
@@ -134,7 +133,7 @@ export default function EditProduct() {
   /* ── Save ── */
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!product?.id) return;
+    if (!product) return;
     setError(''); setSaving(true);
     try {
       const primaryIdx = images.findIndex((img) => img.isPrimary);
@@ -147,28 +146,36 @@ export default function EditProduct() {
         if (img.isExisting) {
           imageUrls.push(img.url);
         } else if (img.file) {
-          const url = await uploadProductImage(form.slug, img.file);
-          imageUrls.push(url);
+          const fd = new FormData();
+          fd.append('file', img.file);
+          fd.append('folder', 'vani-products');
+          const r = await fetch('/api/upload', { method: 'POST', body: fd });
+          const d = await r.json();
+          if (!r.ok) throw new Error(d.error ?? 'Image upload failed');
+          imageUrls.push(d.url);
         }
       }
 
-      await updateFSProduct(product.id, {
-        slug:          form.slug,
-        name:          form.name,
-        description:   form.shortDesc,
-        longDesc:      form.longDesc,
-        details:       details.filter(Boolean),
-        price,
-        originalPrice: origPrice > 0 ? origPrice : undefined,
-        stock:         form.stock !== '' ? parseInt(form.stock) : undefined,
-        category:      form.category,
-        subcategory:   form.subcategory || undefined,
-        images:        imageUrls,
-        isFeatured:    form.isFeatured,
-        isNewArrival:  form.isNewArrival,
-        isBestSeller:  form.isBestSeller,
-        isOnSale:      form.isOnSale,
+      const res = await fetch(`/api/products/${product.slug}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slug:          form.slug,
+          name:          form.name,
+          description:   form.shortDesc,
+          price,
+          originalPrice: origPrice > 0 ? origPrice : undefined,
+          stock:         form.stock !== '' ? parseInt(form.stock) : undefined,
+          category:      form.category,
+          images:        imageUrls,
+          isFeatured:    form.isFeatured,
+          isNewArrival:  form.isNewArrival,
+          isBestSeller:  form.isBestSeller,
+          isOnSale:      form.isOnSale,
+        }),
       });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed to save');
 
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -181,11 +188,11 @@ export default function EditProduct() {
 
   /* ── Delete ── */
   async function handleDelete() {
-    if (!product?.id) return;
+    if (!product) return;
     if (!confirm(`Delete "${product.name}"? This cannot be undone.`)) return;
     setDeleting(true);
     try {
-      await deleteFSProduct(product.id);
+      await fetch(`/api/products/${product.slug}`, { method: 'DELETE' });
       router.replace('/admin/products');
     } catch {
       setError('Failed to delete product.');
