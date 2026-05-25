@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { getAllProducts, filterCategories } from '@/lib/products';
+import { filterCategories } from '@/lib/products';
 import { ProductCard } from '@/components/store/ProductCard';
+import type { IProduct } from '@/lib/models/Product';
 
 function FilterIcon() {
   return (
@@ -22,12 +23,13 @@ const sortOptions = [
 ];
 
 export default function ShopPage() {
-  const allProducts = useMemo(() => getAllProducts(), []);
-  const [category, setCategory] = useState('all');
-  const [sort, setSort]         = useState('featured');
-  const [search, setSearch]     = useState('');
-  const [maxPrice, setMaxPrice] = useState(10000);
-  const [onlyOnSale, setOnlyOnSale] = useState(false);
+  const [allProducts, setAllProducts] = useState<IProduct[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [category, setCategory]       = useState('all');
+  const [sort, setSort]               = useState('featured');
+  const [search, setSearch]           = useState('');
+  const [maxPrice, setMaxPrice]       = useState(10000);
+  const [onlyOnSale, setOnlyOnSale]   = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Read category from URL search param on mount
@@ -37,10 +39,21 @@ export default function ShopPage() {
     if (cat) setCategory(cat);
   }, []);
 
+  useEffect(() => {
+    setLoading(true);
+    fetch('/api/products')
+      .then((r) => r.json())
+      .then((data: IProduct[]) => { setAllProducts(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
   const filtered = useMemo(() => {
     return allProducts
       .filter((p) => category === 'all' || p.category === category)
-      .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()) || p.description.toLowerCase().includes(search.toLowerCase()))
+      .filter((p) => {
+        const desc = p.description ?? '';
+        return p.name.toLowerCase().includes(search.toLowerCase()) || desc.toLowerCase().includes(search.toLowerCase());
+      })
       .filter((p) => p.price <= maxPrice)
       .filter((p) => !onlyOnSale || p.isOnSale)
       .sort((a, b) => {
@@ -106,6 +119,7 @@ export default function ShopPage() {
           step={100}
           value={maxPrice}
           onChange={(e) => setMaxPrice(Number(e.target.value))}
+          aria-label="Maximum price"
           className="w-full accent-brand-600"
         />
         <div className="mt-1 flex justify-between text-[10px] text-stone-400">
@@ -175,7 +189,11 @@ export default function ShopPage() {
           </button>
 
           <p className="text-sm text-stone-500">
-            <span className="font-semibold text-stone-900">{filtered.length}</span> products found
+            {loading ? (
+              <span className="text-stone-400">Loading…</span>
+            ) : (
+              <><span className="font-semibold text-stone-900">{filtered.length}</span> products found</>
+            )}
           </p>
 
           {/* Sort */}
@@ -203,7 +221,13 @@ export default function ShopPage() {
 
           {/* Product grid */}
           <div>
-            {filtered.length === 0 ? (
+            {loading ? (
+              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="h-72 animate-pulse rounded-2xl bg-stone-200" />
+                ))}
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-300 py-20 text-center">
                 <p className="font-display text-xl font-semibold text-stone-900">No products found</p>
                 <p className="mt-2 text-sm text-stone-500">Try adjusting your filters or search term.</p>

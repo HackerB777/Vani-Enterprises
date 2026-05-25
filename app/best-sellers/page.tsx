@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { ProductCard } from '@/components/store/ProductCard';
-import { getBestSellers } from '@/lib/products';
+import { connectDB, serialize } from '@/lib/mongodb';
+import { Product } from '@/lib/models/Product';
 
-export default function BestSellersPage() {
-  const products = getBestSellers();
+export default async function BestSellersPage() {
+  await connectDB();
+  const products = await Product.find({ isBestSeller: true }).sort({ createdAt: -1 }).lean().then(serialize);
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -41,7 +43,9 @@ export default function BestSellersPage() {
       <div className="container py-10">
         {products.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-stone-300 bg-white py-24 text-center">
-            <Link href="/shop" className="mt-4 rounded-full bg-stone-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition">
+            <p className="font-display text-xl font-bold text-stone-900">No best sellers yet</p>
+            <p className="mt-2 text-stone-500">Check back soon — products marked as best sellers will appear here.</p>
+            <Link href="/shop" className="mt-4 inline-block rounded-full bg-stone-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition">
               Browse All Products
             </Link>
           </div>

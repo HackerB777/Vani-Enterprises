@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState } from 'react';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
-import { Product, categoryGradients, getDiscountPercent } from '@/lib/products';
+import type { IProduct } from '@/lib/models/Product';
+import { categoryGradients, getDiscountPercent } from '@/lib/products';
 import { StarRating } from './StarRating';
 
 function HeartIcon({ filled }: { filled: boolean }) {
@@ -36,7 +38,7 @@ function BagIcon() {
 }
 
 interface ProductCardProps {
-  product: Product;
+  product: IProduct;
   compact?: boolean;
 }
 
@@ -51,6 +53,7 @@ export function ProductCard({ product, compact = false }: ProductCardProps) {
   const discountPct   = product.originalPrice
     ? getDiscountPercent(product.price, product.originalPrice)
     : 0;
+  const primaryImage  = product.images?.[0];
 
   const handleAddToCart = () => {
     addItem(product);
@@ -63,13 +66,24 @@ export function ProductCard({ product, compact = false }: ProductCardProps) {
       {/* Image / placeholder */}
       <Link href={`/product/${product.slug}`} className="relative block flex-shrink-0 overflow-hidden">
         <div
-          className={`relative h-52 w-full bg-gradient-to-br ${gradient} ${compact ? 'h-44' : 'h-52'} flex items-end justify-end p-3`}
+          className={`relative ${compact ? 'h-44' : 'h-52'} w-full overflow-hidden`}
         >
-          {/* Decorative circle */}
-          <div className="absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/20 blur-2xl" />
+          {primaryImage ? (
+            <Image
+              src={primaryImage}
+              alt={product.name}
+              fill
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            />
+          ) : (
+            <div className={`h-full w-full bg-gradient-to-br ${gradient} flex items-center justify-center`}>
+              <div className="absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/20 blur-2xl" />
+            </div>
+          )}
 
           {/* Badges */}
-          <div className="absolute left-3 top-3 flex flex-col gap-1.5">
+          <div className="absolute left-3 top-3 flex flex-col gap-1.5 z-10">
             {product.isNewArrival && (
               <span className="rounded-full bg-sky-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
                 New
@@ -95,7 +109,7 @@ export function ProductCard({ product, compact = false }: ProductCardProps) {
               toggleItem(product);
             }}
             aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-            className={`relative z-10 rounded-full p-1.5 shadow-sm transition-all duration-200 ${
+            className={`absolute bottom-3 right-3 z-10 rounded-full p-1.5 shadow-sm transition-all duration-200 ${
               isWishlisted
                 ? 'bg-red-50 text-red-500 hover:bg-red-100'
                 : 'bg-white/90 text-stone-400 opacity-0 group-hover:opacity-100 hover:text-red-500'

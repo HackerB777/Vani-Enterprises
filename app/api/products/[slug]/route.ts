@@ -4,10 +4,11 @@ import { authOptions } from '@/lib/auth';
 import { connectDB } from '@/lib/mongodb';
 import { Product } from '@/lib/models/Product';
 
-export async function GET(_: NextRequest, { params }: { params: { slug: string } }) {
+export async function GET(_: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
+    const { slug } = await params;
     await connectDB();
-    const product = await Product.findOne({ slug: params.slug }).lean();
+    const product = await Product.findOne({ slug }).lean();
     if (!product) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(product);
   } catch {
@@ -15,16 +16,17 @@ export async function GET(_: NextRequest, { params }: { params: { slug: string }
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { slug: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const { slug } = await params;
     await connectDB();
     const body    = await request.json();
     const product = await Product.findOneAndUpdate(
-      { slug: params.slug },
+      { slug },
       { ...body, updatedAt: new Date().toISOString() },
       { new: true }
     ).lean();
@@ -35,14 +37,15 @@ export async function PUT(request: NextRequest, { params }: { params: { slug: st
   }
 }
 
-export async function DELETE(_: NextRequest, { params }: { params: { slug: string } }) {
+export async function DELETE(_: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const { slug } = await params;
     await connectDB();
-    const result = await Product.findOneAndDelete({ slug: params.slug });
+    const result = await Product.findOneAndDelete({ slug });
     if (!result) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json({ success: true });
   } catch {

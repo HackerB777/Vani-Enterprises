@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { Product } from '@/lib/products';
+import type { IProduct } from '@/lib/models/Product';
 
 const storage = typeof window !== 'undefined' ? window.localStorage : ({} as Storage);
 
 interface WishlistState {
-  items: Product[];
-  toggleItem: (product: Product) => void;
+  items: IProduct[];
+  toggleItem: (product: IProduct) => void;
   removeItem: (slug: string) => void;
   clearWishlist: () => void;
 }

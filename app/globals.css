@@ -103,6 +103,20 @@ main { animation: fadeIn 0.3s ease-in-out; }
   background: linear-gradient(180deg, #1c0a00 0%, #0f0f0f 50%, #0a0a0a 100%);
 }
 
+/* Inline chart progress bars (used instead of div+style for dynamic widths) */
+progress.chart-bar {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  border: none;
+  background: #e7e5e4;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+progress.chart-bar::-webkit-progress-bar  { background: #e7e5e4; border-radius: 9999px; }
+progress.chart-bar::-webkit-progress-value { background: #c2410c; border-radius: 9999px; transition: width 700ms cubic-bezier(.4,0,.2,1); }
+progress.chart-bar::-moz-progress-bar      { background: #c2410c; border-radius: 9999px; transition: width 700ms cubic-bezier(.4,0,.2,1); }
+
 /* Focus ring */
 *:focus-visible {
   outline: 2px solid #c2410c;

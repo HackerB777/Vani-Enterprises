@@ -2,12 +2,9 @@ import Link from 'next/link';
 import { ProductCard } from '@/components/store/ProductCard';
 import { HeroSlider } from '@/components/HeroSlider';
 import { AnimateOnScroll } from '@/components/AnimateOnScroll';
-import {
-  getFeaturedProducts,
-  getBestSellers,
-  getNewArrivals,
-  categories,
-} from '@/lib/products';
+import { connectDB, serialize } from '@/lib/mongodb';
+import { Product } from '@/lib/models/Product';
+import { categories } from '@/lib/products';
 
 const TRUST = [
   {
@@ -32,9 +29,12 @@ const TRUST = [
   },
 ];
 
-export default function HomePage() {
-  const bestSellers = getBestSellers().slice(0, 4);
-  const newArrivals = getNewArrivals().slice(0, 4);
+export default async function HomePage() {
+  await connectDB();
+  const [bestSellers, newArrivals] = await Promise.all([
+    Product.find({ isBestSeller: true }).sort({ createdAt: -1 }).limit(4).lean().then(serialize),
+    Product.find({ isNewArrival: true }).sort({ createdAt: -1 }).limit(4).lean().then(serialize),
+  ]);
 
   return (
     <>

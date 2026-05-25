@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { ProductCard } from '@/components/store/ProductCard';
-import { getNewArrivals } from '@/lib/products';
+import { connectDB, serialize } from '@/lib/mongodb';
+import { Product } from '@/lib/models/Product';
 
-export default function NewArrivalsPage() {
-  const products = getNewArrivals();
+export default async function NewArrivalsPage() {
+  await connectDB();
+  const products = await Product.find({ isNewArrival: true }).sort({ createdAt: -1 }).lean().then(serialize);
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -25,7 +27,7 @@ export default function NewArrivalsPage() {
         <div className="container py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
             <p className="font-display text-2xl font-bold text-stone-900">
-              {products.length} new products this season
+              {products.length} new product{products.length !== 1 ? 's' : ''} this season
             </p>
             <p className="mt-1 text-stone-500 text-sm">Updated weekly with the freshest handpicked pieces.</p>
           </div>

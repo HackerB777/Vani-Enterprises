@@ -1,17 +1,17 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { Product } from '@/lib/products';
+import type { IProduct } from '@/lib/models/Product';
 
 const storage = typeof window !== 'undefined' ? window.localStorage : ({} as Storage);
 
 export interface CartItem {
-  product: Product;
+  product: IProduct;
   quantity: number;
 }
 
 interface CartState {
   items: CartItem[];
-  addItem: (product: Product) => void;
+  addItem: (product: IProduct) => void;
   removeItem: (slug: string) => void;
   updateQuantity: (slug: string, quantity: number) => void;
   clearCart: () => void;

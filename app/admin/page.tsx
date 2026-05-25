@@ -1,10 +1,11 @@
-'use client';
+import Link from 'next/link';
+import { connectDB, serialize } from '@/lib/mongodb';
+import { Product } from '@/lib/models/Product';
+import { OrderModel } from '@/lib/models/Order';
+import { STATUS_LABELS } from '@/lib/orders';
+import type { Order } from '@/lib/orders';
 
 export const dynamic = 'force-dynamic';
-
-import Link from 'next/link';
-import { getDashboardStats, getRecentOrders, getLast7DaysRevenue, getStatusBreakdown } from '@/lib/adminStats';
-import { STATUS_LABELS } from '@/lib/orders';
 
 const STATUS_COLORS: Record<string, string> = {
   placed:           'bg-blue-100 text-blue-700',
@@ -27,12 +28,83 @@ function KpiCard({ title, value, sub, color }: { title: string; value: string; s
   );
 }
 
-export default function AdminDashboard() {
-  const stats   = getDashboardStats();
-  const recent  = getRecentOrders(8);
-  const revenue = getLast7DaysRevenue();
-  const statusBreakdown = getStatusBreakdown();
+async function getAdminData() {
+  await connectDB();
 
+  const today    = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+
+  const [
+    totalOrders,
+    todayOrderDocs,
+    pendingOrders,
+    deliveredOrders,
+    totalProducts,
+    lowStockCount,
+    revenueAgg,
+    todayRevenueAgg,
+    recentOrders,
+    statusAgg,
+    last7DaysAgg,
+  ] = await Promise.all([
+    OrderModel.countDocuments(),
+    OrderModel.countDocuments({ createdAt: { $gte: today.toISOString(), $lt: tomorrow.toISOString() } }),
+    OrderModel.countDocuments({ status: { $in: ['placed', 'confirmed', 'processing'] } }),
+    OrderModel.countDocuments({ status: 'delivered' }),
+    Product.countDocuments(),
+    Product.countDocuments({ stock: { $gt: -1, $lt: 10 } }),
+    OrderModel.aggregate([{ $group: { _id: null, total: { $sum: '$total' } } }]),
+    OrderModel.aggregate([
+      { $match: { createdAt: { $gte: today.toISOString(), $lt: tomorrow.toISOString() } } },
+      { $group: { _id: null, total: { $sum: '$total' } } },
+    ]),
+    OrderModel.find({}).sort({ createdAt: -1 }).limit(8).lean(),
+    OrderModel.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+    OrderModel.aggregate([
+      { $match: { createdAt: { $gte: sevenDaysAgo.toISOString() } } },
+      {
+        $group: {
+          _id: { $substr: ['$createdAt', 0, 10] },
+          revenue: { $sum: '$total' },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]),
+  ]);
+
+  const totalRevenue   = revenueAgg[0]?.total ?? 0;
+  const todayRevenue   = todayRevenueAgg[0]?.total ?? 0;
+
+  const statusBreakdown: Record<string, number> = {};
+  for (const s of statusAgg) statusBreakdown[s._id] = s.count;
+
+  // Build last 7 days revenue array
+  const revenue: { label: string; revenue: number }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d    = new Date();
+    d.setDate(d.getDate() - i);
+    const key  = d.toISOString().slice(0, 10);
+    const label = d.toLocaleDateString('en-IN', { weekday: 'short' });
+    const found = last7DaysAgg.find((x: { _id: string; revenue: number }) => x._id === key);
+    revenue.push({ label, revenue: found?.revenue ?? 0 });
+  }
+
+  return {
+    stats: { totalOrders, todayOrders: todayOrderDocs, pendingOrders, deliveredOrders, totalProducts, lowStockCount, totalRevenue, todayRevenue },
+    recentOrders: serialize(recentOrders) as unknown as Order[],
+    revenue,
+    statusBreakdown,
+  };
+}
+
+export default async function AdminDashboard() {
+  const { stats, recentOrders, revenue, statusBreakdown } = await getAdminData();
   const maxRev = Math.max(...revenue.map((d) => d.revenue), 1);
 
   return (
@@ -82,10 +154,9 @@ export default function AdminDashboard() {
               return (
                 <div key={day.label} className="group flex flex-1 flex-col items-center gap-1">
                   <div className="relative w-full">
-                    <div
-                      className="w-full rounded-t-md bg-brand-200 transition-all duration-500 group-hover:bg-brand-500"
-                      style={{ height: `${Math.max(heightPct * 1.4, 4)}px` }}
-                    />
+                    <svg width="100%" height={Math.max(heightPct * 1.4, 4)} className="block overflow-visible" aria-hidden="true">
+                      <rect x="0" y="0" width="100%" height={Math.max(heightPct * 1.4, 4)} rx="2" className="fill-brand-200 group-hover:fill-brand-500 transition-all duration-500" />
+                    </svg>
                     <div className="absolute -top-6 left-1/2 hidden -translate-x-1/2 rounded bg-stone-800 px-1.5 py-0.5 text-[10px] text-white group-hover:block whitespace-nowrap">
                       ₹{day.revenue.toLocaleString('en-IN')}
                     </div>
@@ -133,7 +204,7 @@ export default function AdminDashboard() {
           </Link>
         </div>
 
-        {recent.length === 0 ? (
+        {recentOrders.length === 0 ? (
           <div className="py-16 text-center text-stone-400">
             <svg className="mx-auto mb-3 h-10 w-10 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -152,11 +223,11 @@ export default function AdminDashboard() {
                   <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-stone-400">Total</th>
                   <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-stone-400">Status</th>
                   <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-stone-400">Date</th>
-                  <th className="px-4 py-3"></th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-stone-400">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-50">
-                {recent.map((order) => (
+                {recentOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-stone-50 transition-colors">
                     <td className="px-6 py-3 font-mono text-xs font-medium text-stone-600">{order.id}</td>
                     <td className="px-4 py-3">

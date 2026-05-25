@@ -6,6 +6,9 @@ export interface IProduct {
   slug: string;
   category: string;
   description?: string;
+  details?: string[];
+  rating?: number;
+  reviewCount?: number;
   price: number;
   originalPrice?: number;
   stock?: number;
@@ -23,6 +26,9 @@ const schema = new mongoose.Schema<IProduct>({
   slug:          { type: String, required: true, unique: true },
   category:      { type: String, required: true },
   description:   String,
+  details:       [String],
+  rating:        Number,
+  reviewCount:   Number,
   price:         { type: Number, required: true },
   originalPrice: Number,
   stock:         Number,

@@ -1,6 +1,5 @@
-'use client';
-
 import Link from 'next/link';
+import { NewsletterForm } from './NewsletterForm';
 
 function WhatsAppIcon() {
   return (
@@ -63,22 +62,7 @@ export function Footer() {
               Get exclusive offers in your inbox
             </h3>
           </div>
-          <form
-            onSubmit={(e) => e.preventDefault()}
-            className="flex w-full max-w-sm gap-2"
-          >
-            <input
-              type="email"
-              placeholder="Your email address"
-              className="flex-1 rounded-full border border-stone-700 bg-stone-800 px-4 py-2.5 text-sm text-white placeholder:text-stone-500 outline-none transition focus:border-brand-500"
-            />
-            <button
-              type="submit"
-              className="rounded-full bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
-            >
-              Subscribe
-            </button>
-          </form>
+          <NewsletterForm />
         </div>
       </div>
 
@@ -160,7 +144,7 @@ export function Footer() {
             <h4 className="mb-4 text-xs font-bold uppercase tracking-widest text-stone-200">Customer Support</h4>
             <ul className="space-y-2.5">
               {support.map((link) => (
-                <li key={link.href}>
+                <li key={link.label}>
                   <Link
                     href={link.href}
                     className="text-sm text-stone-500 transition hover:text-stone-200"

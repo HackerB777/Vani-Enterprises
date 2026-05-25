@@ -1,16 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import Image from 'next/image';
+import { useState, useEffect, use } from 'react';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
-import {
-  getProductBySlug,
-  getRelatedProducts,
-  getCategoryBySlug,
-  categoryGradients,
-  getDiscountPercent,
-} from '@/lib/products';
+import type { IProduct } from '@/lib/models/Product';
+import { categoryGradients, categories, getDiscountPercent } from '@/lib/products';
 import { StarRating } from '@/components/store/StarRating';
 import { ProductCard } from '@/components/store/ProductCard';
 
@@ -32,21 +28,48 @@ function CheckIcon() {
   return <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>;
 }
 
-interface Props { params: { slug: string } }
+interface Props { params: Promise<{ slug: string }> }
 
 export default function ProductPage({ params }: Props) {
+  const { slug }      = use(params);
   const addItem       = useCartStore((s) => s.addItem);
   const toggleItem    = useWishlistStore((s) => s.toggleItem);
   const wishlistItems = useWishlistStore((s) => s.items);
-  const [qty, setQty]     = useState(1);
-  const [added, setAdded] = useState(false);
+  const [qty, setQty]         = useState(1);
+  const [added, setAdded]     = useState(false);
+  const [product, setProduct] = useState<IProduct | null>(null);
+  const [related, setRelated] = useState<IProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeImg, setActiveImg] = useState(0);
 
-  const product     = useMemo(() => getProductBySlug(params.slug), [params.slug]);
-  const related     = useMemo(() => product ? getRelatedProducts(product.slug, product.category) : [], [product]);
-  const category    = useMemo(() => product ? getCategoryBySlug(product.category) : null, [product]);
-  const isWishlisted = wishlistItems.some((i) => i.slug === params.slug);
-  const gradient    = product ? (categoryGradients[product.category] ?? 'from-stone-100 to-stone-50') : '';
-  const discountPct = product?.originalPrice ? getDiscountPercent(product.price, product.originalPrice) : 0;
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/products/${slug}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((p: IProduct | null) => {
+        setProduct(p);
+        setLoading(false);
+        if (p) {
+          fetch(`/api/products?category=${p.category}&limit=5`)
+            .then((r) => r.json())
+            .then((all: IProduct[]) => setRelated(all.filter((x) => x.slug !== slug).slice(0, 4)));
+        }
+      })
+      .catch(() => setLoading(false));
+  }, [slug]);
+
+  const isWishlisted = wishlistItems.some((i) => i.slug === slug);
+  const gradient     = product ? (categoryGradients[product.category] ?? 'from-stone-100 to-stone-50') : '';
+  const discountPct  = product?.originalPrice ? getDiscountPercent(product.price, product.originalPrice) : 0;
+  const category     = product ? categories.find((c) => c.slug === product.category) : null;
+
+  if (loading) {
+    return (
+      <div className="container py-20 text-center">
+        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-stone-200 border-t-brand-600" />
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -65,6 +88,8 @@ export default function ProductPage({ params }: Props) {
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
+
+  const images = product.images?.length ? product.images : [];
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -94,12 +119,33 @@ export default function ProductPage({ params }: Props) {
           {/* Image panel */}
           <div className="space-y-4">
             <div className={`relative flex h-96 w-full items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br ${gradient} lg:h-[480px]`}>
-              {/* Decorative circles */}
-              <div className="absolute left-1/3 top-1/4 h-40 w-40 rounded-full bg-white/20 blur-2xl" />
-              <div className="absolute right-1/4 bottom-1/4 h-32 w-32 rounded-full bg-white/15 blur-xl" />
+              {images[activeImg] ? (
+                <Image
+                  src={images[activeImg]}
+                  alt={product.name}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  priority
+                />
+              ) : (
+                <>
+                  <div className="absolute left-1/3 top-1/4 h-40 w-40 rounded-full bg-white/20 blur-2xl" />
+                  <div className="absolute right-1/4 bottom-1/4 h-32 w-32 rounded-full bg-white/15 blur-xl" />
+                  <p className="text-[80px] opacity-10 select-none">
+                    {product.category === 'textiles' ? '🧵' :
+                     product.category === 'decor'    ? '🏮' :
+                     product.category === 'bedding'  ? '🛏' :
+                     product.category === 'kitchen'  ? '🍳' :
+                     product.category === 'dining'   ? '🍽' :
+                     product.category === 'storage'  ? '📦' :
+                     product.category === 'bath'     ? '🛁' : '🌿'}
+                  </p>
+                </>
+              )}
 
               {/* Badges */}
-              <div className="absolute left-4 top-4 flex flex-col gap-2">
+              <div className="absolute left-4 top-4 flex flex-col gap-2 z-10">
                 {product.isNewArrival && (
                   <span className="rounded-full bg-sky-500 px-3 py-1 text-xs font-bold text-white shadow-sm">New Arrival</span>
                 )}
@@ -110,27 +156,33 @@ export default function ProductPage({ params }: Props) {
                   <span className="rounded-full bg-brand-600 px-3 py-1 text-xs font-bold text-white shadow-sm">{discountPct}% Off</span>
                 )}
               </div>
-
-              <p className="text-[80px] opacity-10 select-none">
-                {product.category === 'textiles' ? '🧵' :
-                 product.category === 'decor'    ? '🏮' :
-                 product.category === 'bedding'  ? '🛏' :
-                 product.category === 'kitchen'  ? '🍳' :
-                 product.category === 'dining'   ? '🍽' :
-                 product.category === 'storage'  ? '📦' :
-                 product.category === 'bath'     ? '🛁' : '🌿'}
-              </p>
             </div>
 
             {/* Thumbnail strip */}
-            <div className="flex gap-3">
-              {[1, 2, 3, 4].map((n) => (
-                <div
-                  key={n}
-                  className={`h-16 w-16 cursor-pointer rounded-xl bg-gradient-to-br ${gradient} ${n === 1 ? 'ring-2 ring-brand-600 ring-offset-1' : 'opacity-60 hover:opacity-100'} transition-opacity`}
-                />
-              ))}
-            </div>
+            {images.length > 1 ? (
+              <div className="flex gap-3">
+                {images.map((url, n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    aria-label={`View image ${n + 1}`}
+                    onClick={() => setActiveImg(n)}
+                    className={`relative h-16 w-16 cursor-pointer overflow-hidden rounded-xl ${n === activeImg ? 'ring-2 ring-brand-600 ring-offset-1' : 'opacity-60 hover:opacity-100'} transition-opacity`}
+                  >
+                    <Image src={url} alt={`${product.name} ${n + 1}`} fill className="object-cover" sizes="64px" />
+                  </button>
+                ))}
+              </div>
+            ) : images.length === 0 ? (
+              <div className="flex gap-3">
+                {[1, 2, 3, 4].map((n) => (
+                  <div
+                    key={n}
+                    className={`h-16 w-16 rounded-xl bg-gradient-to-br ${gradient} ${n === 1 ? 'ring-2 ring-brand-600 ring-offset-1' : 'opacity-60'}`}
+                  />
+                ))}
+              </div>
+            ) : null}
           </div>
 
           {/* Product info */}
@@ -168,7 +220,9 @@ export default function ProductPage({ params }: Props) {
               )}
             </div>
 
-            <p className="text-base leading-relaxed text-stone-600">{product.description}</p>
+            {product.description && (
+              <p className="text-base leading-relaxed text-stone-600">{product.description}</p>
+            )}
 
             {/* Quantity + Add to Cart */}
             <div className="flex flex-wrap items-center gap-3">
@@ -239,17 +293,19 @@ export default function ProductPage({ params }: Props) {
             </a>
 
             {/* Details */}
-            <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5">
-              <h2 className="font-semibold text-stone-900">Product Details</h2>
-              <ul className="mt-3 space-y-2">
-                {product.details.map((detail) => (
-                  <li key={detail} className="flex items-start gap-2.5 text-sm text-stone-600">
-                    <CheckIcon />
-                    <span>{detail}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {product.details && product.details.length > 0 && (
+              <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5">
+                <h2 className="font-semibold text-stone-900">Product Details</h2>
+                <ul className="mt-3 space-y-2">
+                  {product.details.map((detail) => (
+                    <li key={detail} className="flex items-start gap-2.5 text-sm text-stone-600">
+                      <CheckIcon />
+                      <span>{detail}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Delivery info */}
             <div className="grid grid-cols-3 gap-3">

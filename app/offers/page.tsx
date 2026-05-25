@@ -1,9 +1,13 @@
 import Link from 'next/link';
 import { ProductCard } from '@/components/store/ProductCard';
-import { getSaleProducts, getDiscountPercent } from '@/lib/products';
+import { connectDB, serialize } from '@/lib/mongodb';
+import { Product } from '@/lib/models/Product';
+import { getDiscountPercent } from '@/lib/products';
 
-export default function OffersPage() {
-  const products = getSaleProducts();
+export default async function OffersPage() {
+  await connectDB();
+  const products = await Product.find({ isOnSale: true }).sort({ createdAt: -1 }).lean().then(serialize);
+
   const maxSaving = products.reduce((max, p) => {
     if (!p.originalPrice) return max;
     return Math.max(max, getDiscountPercent(p.price, p.originalPrice));
@@ -24,7 +28,7 @@ export default function OffersPage() {
                 Limited Time
               </span>
               <h1 className="mt-3 font-display text-4xl font-bold text-white sm:text-5xl">
-                Up to {maxSaving}% Off
+                {maxSaving > 0 ? `Up to ${maxSaving}% Off` : 'Sale On Now'}
               </h1>
               <p className="mt-3 text-lg text-brand-200">
                 Hand-picked deals on premium home collections. While stocks last.

@@ -1,23 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { products, categories, categoryGradients } from '@/lib/products';
+import { useState, useEffect } from 'react';
+import type { IProduct } from '@/lib/models/Product';
+import { categories, categoryGradients } from '@/lib/products';
 
 interface StockItem {
-  slug: string;
-  name: string;
+  slug:     string;
+  name:     string;
   category: string;
-  price: number;
-  stock: number;
+  price:    number;
+  stock:    number;
 }
-
-const initialStock: StockItem[] = products.map((p, i) => ({
-  slug:     p.slug,
-  name:     p.name,
-  category: p.category,
-  price:    p.price,
-  stock:    [42, 8, 0, 23, 5, 100, 15, 3, 67, 12, 0, 9, 55, 2, 88, 34, 6, 44, 18, 71, 26, 11][i % 22],
-}));
 
 const STOCK_BADGE = (n: number) =>
   n === 0   ? 'bg-red-100 text-red-700'
@@ -29,12 +22,30 @@ const STOCK_LABEL = (n: number) =>
   n === 0 ? 'Out of Stock' : n < 10 ? 'Low Stock' : n < 25 ? 'Limited' : 'In Stock';
 
 export default function AdminInventory() {
-  const [stock, setStock]       = useState<StockItem[]>(initialStock);
+  const [stock, setStock]       = useState<StockItem[]>([]);
+  const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState('');
   const [category, setCategory] = useState('all');
   const [filter, setFilter]     = useState<'all' | 'low' | 'out'>('all');
   const [editing, setEditing]   = useState<string | null>(null);
   const [editVal, setEditVal]   = useState('');
+  const [saving, setSaving]     = useState(false);
+
+  useEffect(() => {
+    fetch('/api/products')
+      .then((r) => r.json())
+      .then((products: IProduct[]) => {
+        setStock(products.map((p) => ({
+          slug:     p.slug,
+          name:     p.name,
+          category: p.category,
+          price:    p.price,
+          stock:    p.stock ?? 0,
+        })));
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
 
   const filtered = stock.filter((item) => {
     const matchCat    = category === 'all' || item.category === category;
@@ -48,12 +59,22 @@ export default function AdminInventory() {
     setEditVal(String(current));
   };
 
-  const saveEdit = (slug: string) => {
+  const saveEdit = async (slug: string) => {
     const val = parseInt(editVal, 10);
-    if (!isNaN(val) && val >= 0) {
+    if (isNaN(val) || val < 0) { setEditing(null); return; }
+
+    setSaving(true);
+    try {
+      await fetch(`/api/products/${slug}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stock: val }),
+      });
       setStock((prev) => prev.map((s) => s.slug === slug ? { ...s, stock: val } : s));
+    } finally {
+      setSaving(false);
+      setEditing(null);
     }
-    setEditing(null);
   };
 
   const lowCount = stock.filter((s) => s.stock > 0 && s.stock < 10).length;
@@ -68,7 +89,7 @@ export default function AdminInventory() {
       </div>
 
       {/* Alert strip */}
-      {(lowCount > 0 || outCount > 0) && (
+      {!loading && (lowCount > 0 || outCount > 0) && (
         <div className="flex flex-wrap gap-3">
           {outCount > 0 && (
             <div className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-2.5 text-sm font-medium text-red-700">
@@ -120,6 +141,7 @@ export default function AdminInventory() {
           ].map(({ key, label }) => (
             <button
               key={key}
+              type="button"
               onClick={() => setFilter(key as 'all' | 'low' | 'out')}
               className={`px-4 py-2.5 text-sm font-medium transition ${
                 filter === key ? 'bg-brand-600 text-white' : 'text-stone-600 hover:bg-stone-50'
@@ -133,95 +155,110 @@ export default function AdminInventory() {
 
       {/* Table */}
       <div className="rounded-2xl border border-stone-200 bg-white shadow-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-stone-100 bg-stone-50 text-left">
-                <th className="px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-stone-400">Product</th>
-                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-stone-400">Category</th>
-                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-stone-400">Price</th>
-                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-stone-400">Stock</th>
-                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-stone-400">Status</th>
-                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-stone-400">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-50">
-              {filtered.map((item) => {
-                const gradient = categoryGradients[item.category] ?? 'from-stone-100 to-stone-200';
-                return (
-                  <tr key={item.slug} className={`hover:bg-stone-50/60 transition-colors ${item.stock === 0 ? 'bg-red-50/30' : ''}`}>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`h-8 w-8 flex-shrink-0 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center text-stone-400`}>
-                          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                          </svg>
-                        </div>
-                        <p className="font-medium text-stone-800 leading-tight">{item.name}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-600 capitalize">{item.category}</span>
-                    </td>
-                    <td className="px-4 py-4 font-medium text-stone-700">₹{item.price.toLocaleString('en-IN')}</td>
-                    <td className="px-4 py-4">
-                      {editing === item.slug ? (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            min="0"
-                            value={editVal}
-                            onChange={(e) => setEditVal(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && saveEdit(item.slug)}
-                            className="w-20 rounded-lg border border-brand-300 px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-brand-100"
-                            autoFocus
-                          />
-                          <button
-                            onClick={() => saveEdit(item.slug)}
-                            className="rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-700"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={() => setEditing(null)}
-                            className="text-stone-400 hover:text-stone-600 text-xs"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ) : (
-                        <span className={`font-semibold ${item.stock === 0 ? 'text-red-600' : item.stock < 10 ? 'text-amber-600' : 'text-stone-800'}`}>
-                          {item.stock}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STOCK_BADGE(item.stock)}`}>
-                        {STOCK_LABEL(item.stock)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <button
-                        onClick={() => startEdit(item.slug, item.stock)}
-                        className="rounded-lg border border-stone-200 px-2.5 py-1 text-xs font-semibold text-stone-600 transition hover:border-brand-300 hover:text-brand-600"
-                      >
-                        Edit Stock
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        {filtered.length === 0 && (
-          <div className="py-12 text-center text-stone-400">
-            <p className="text-sm">No items match your filters</p>
+        {loading ? (
+          <div className="py-16 text-center">
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-stone-200 border-t-brand-600" />
+            <p className="mt-3 text-sm text-stone-400">Loading inventory…</p>
           </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-stone-100 bg-stone-50 text-left">
+                    <th className="px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-stone-400">Product</th>
+                    <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-stone-400">Category</th>
+                    <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-stone-400">Price</th>
+                    <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-stone-400">Stock</th>
+                    <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-stone-400">Status</th>
+                    <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-stone-400">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-50">
+                  {filtered.map((item) => {
+                    const gradient = categoryGradients[item.category] ?? 'from-stone-100 to-stone-200';
+                    return (
+                      <tr key={item.slug} className={`hover:bg-stone-50/60 transition-colors ${item.stock === 0 ? 'bg-red-50/30' : ''}`}>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`h-8 w-8 flex-shrink-0 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center text-stone-400`}>
+                              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                              </svg>
+                            </div>
+                            <p className="font-medium text-stone-800 leading-tight">{item.name}</p>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-600 capitalize">{item.category}</span>
+                        </td>
+                        <td className="px-4 py-4 font-medium text-stone-700">₹{item.price.toLocaleString('en-IN')}</td>
+                        <td className="px-4 py-4">
+                          {editing === item.slug ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min="0"
+                                value={editVal}
+                                onChange={(e) => setEditVal(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && saveEdit(item.slug)}
+                                aria-label="Stock quantity"
+                                placeholder="0"
+                                className="w-20 rounded-lg border border-brand-300 px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-brand-100"
+                                autoFocus
+                              />
+                              <button
+                                type="button"
+                                onClick={() => saveEdit(item.slug)}
+                                disabled={saving}
+                                className="rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+                              >
+                                {saving ? '…' : 'Save'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditing(null)}
+                                className="text-stone-400 hover:text-stone-600 text-xs"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <span className={`font-semibold ${item.stock === 0 ? 'text-red-600' : item.stock < 10 ? 'text-amber-600' : 'text-stone-800'}`}>
+                              {item.stock}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STOCK_BADGE(item.stock)}`}>
+                            {STOCK_LABEL(item.stock)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <button
+                            type="button"
+                            onClick={() => startEdit(item.slug, item.stock)}
+                            className="rounded-lg border border-stone-200 px-2.5 py-1 text-xs font-semibold text-stone-600 transition hover:border-brand-300 hover:text-brand-600"
+                          >
+                            Edit Stock
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {filtered.length === 0 && (
+              <div className="py-12 text-center text-stone-400">
+                <p className="text-sm">No items match your filters</p>
+              </div>
+            )}
+            <div className="border-t border-stone-100 px-6 py-3 text-xs text-stone-400">
+              {filtered.length} of {stock.length} items
+            </div>
+          </>
         )}
-        <div className="border-t border-stone-100 px-6 py-3 text-xs text-stone-400">
-          {filtered.length} of {stock.length} items
-        </div>
       </div>
     </div>
   );

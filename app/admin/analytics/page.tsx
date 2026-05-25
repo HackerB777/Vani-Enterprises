@@ -1,9 +1,9 @@
-'use client';
-
-import { getLast7DaysRevenue, getDashboardStats, getStatusBreakdown } from '@/lib/adminStats';
-import { orders } from '@/lib/orderStorage';
+import { connectDB } from '@/lib/mongodb';
+import { OrderModel } from '@/lib/models/Order';
+import { Product } from '@/lib/models/Product';
 import { STATUS_LABELS } from '@/lib/orders';
-import { products } from '@/lib/products';
+
+export const dynamic = 'force-dynamic';
 
 const STATUS_COLORS_SWATCH: Record<string, string> = {
   placed:           'bg-blue-400',
@@ -16,50 +16,103 @@ const STATUS_COLORS_SWATCH: Record<string, string> = {
   returned:         'bg-stone-400',
 };
 
-function getTopProducts(limit = 5) {
-  const counts: Record<string, { name: string; revenue: number; qty: number }> = {};
-  for (const order of orders) {
-    for (const item of order.items) {
-      const slug = item.product.slug;
-      if (!counts[slug]) counts[slug] = { name: item.product.name, revenue: 0, qty: 0 };
-      counts[slug].revenue += item.total;
-      counts[slug].qty     += item.quantity;
-    }
+async function getAnalyticsData() {
+  await connectDB();
+
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+
+  const [
+    totalOrderCount,
+    revenueAgg,
+    statusAgg,
+    last7DaysAgg,
+    topProductsAgg,
+    topCategoriesAgg,
+    productCount,
+  ] = await Promise.all([
+    OrderModel.countDocuments(),
+    OrderModel.aggregate([{ $group: { _id: null, total: { $sum: '$total' } } }]),
+    OrderModel.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+    OrderModel.aggregate([
+      { $match: { createdAt: { $gte: sevenDaysAgo.toISOString() } } },
+      {
+        $group: {
+          _id: { $substr: ['$createdAt', 0, 10] },
+          revenue: { $sum: '$total' },
+          orders:  { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]),
+    OrderModel.aggregate([
+      { $unwind: '$items' },
+      {
+        $group: {
+          _id:     '$items.product.slug',
+          name:    { $first: '$items.product.name' },
+          revenue: { $sum: '$items.total' },
+          qty:     { $sum: '$items.quantity' },
+        },
+      },
+      { $sort: { revenue: -1 } },
+      { $limit: 5 },
+    ]),
+    OrderModel.aggregate([
+      { $unwind: '$items' },
+      {
+        $group: {
+          _id:     '$items.product.category',
+          revenue: { $sum: '$items.total' },
+        },
+      },
+      { $sort: { revenue: -1 } },
+      { $limit: 6 },
+    ]),
+    Product.countDocuments(),
+  ]);
+
+  const totalRevenue = revenueAgg[0]?.total ?? 0;
+
+  const statusBreakdown: Record<string, number> = {};
+  for (const s of statusAgg) statusBreakdown[s._id] = s.count;
+
+  // Build 7-day arrays
+  const revenue7: { label: string; revenue: number; orders: number }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d     = new Date();
+    d.setDate(d.getDate() - i);
+    const key   = d.toISOString().slice(0, 10);
+    const label = d.toLocaleDateString('en-IN', { weekday: 'short' });
+    const found = last7DaysAgg.find((x: { _id: string; revenue: number; orders: number }) => x._id === key);
+    revenue7.push({ label, revenue: found?.revenue ?? 0, orders: found?.orders ?? 0 });
   }
-  return Object.values(counts)
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, limit);
+
+  const topProds = topProductsAgg.map((p: { name: string; revenue: number; qty: number }) => ({
+    name: p.name, revenue: p.revenue, qty: p.qty,
+  }));
+
+  const topCats: [string, number][] = topCategoriesAgg.map(
+    (c: { _id: string; revenue: number }) => [c._id, c.revenue]
+  );
+
+  return { totalOrderCount, totalRevenue, statusBreakdown, revenue7, topProds, topCats, productCount };
 }
 
-function getTopCategories() {
-  const counts: Record<string, number> = {};
-  for (const order of orders) {
-    for (const item of order.items) {
-      const cat = item.product.category;
-      counts[cat] = (counts[cat] ?? 0) + item.total;
-    }
-  }
-  return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
-}
+export default async function AdminAnalytics() {
+  const { totalOrderCount, totalRevenue, statusBreakdown, revenue7, topProds, topCats, productCount } = await getAnalyticsData();
 
-export default function AdminAnalytics() {
-  const stats      = getDashboardStats();
-  const revenue7   = getLast7DaysRevenue();
-  const breakdown  = getStatusBreakdown();
-  const topProds   = getTopProducts();
-  const topCats    = getTopCategories();
+  const maxRev    = Math.max(...revenue7.map((d) => d.revenue), 1);
+  const maxOrd    = Math.max(...revenue7.map((d) => d.orders), 1);
+  const maxCatRev = Math.max(...topCats.map(([, v]) => v), 1);
 
-  const maxRev     = Math.max(...revenue7.map((d) => d.revenue), 1);
-  const maxOrd     = Math.max(...revenue7.map((d) => d.orders), 1);
-  const totalRevenue = stats.totalRevenue;
-  const maxCatRev  = Math.max(...topCats.map(([, v]) => v), 1);
-
-  const deliveryRate = orders.length > 0
-    ? Math.round(((breakdown.delivered ?? 0) / orders.length) * 100)
+  const deliveryRate = totalOrderCount > 0
+    ? Math.round(((statusBreakdown.delivered ?? 0) / totalOrderCount) * 100)
     : 0;
 
-  const cancelRate = orders.length > 0
-    ? Math.round(((breakdown.cancelled ?? 0) / orders.length) * 100)
+  const cancelRate = totalOrderCount > 0
+    ? Math.round(((statusBreakdown.cancelled ?? 0) / totalOrderCount) * 100)
     : 0;
 
   return (
@@ -73,10 +126,10 @@ export default function AdminAnalytics() {
       {/* Summary KPIs */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: 'Total Revenue',   value: `₹${totalRevenue.toLocaleString('en-IN')}`, sub: `${orders.length} orders`,        color: 'text-brand-600' },
-          { label: 'Avg Order Value', value: orders.length ? `₹${Math.round(totalRevenue / orders.length).toLocaleString('en-IN')}` : '₹0', sub: 'per order', color: 'text-stone-800' },
-          { label: 'Delivery Rate',   value: `${deliveryRate}%`,  sub: `${breakdown.delivered ?? 0} delivered`,   color: 'text-green-600' },
-          { label: 'Cancel Rate',     value: `${cancelRate}%`,    sub: `${breakdown.cancelled ?? 0} cancelled`,   color: cancelRate > 10 ? 'text-red-600' : 'text-stone-800' },
+          { label: 'Total Revenue',   value: `₹${totalRevenue.toLocaleString('en-IN')}`, sub: `${totalOrderCount} orders`,        color: 'text-brand-600' },
+          { label: 'Avg Order Value', value: totalOrderCount ? `₹${Math.round(totalRevenue / totalOrderCount).toLocaleString('en-IN')}` : '₹0', sub: 'per order', color: 'text-stone-800' },
+          { label: 'Delivery Rate',   value: `${deliveryRate}%`,  sub: `${statusBreakdown.delivered ?? 0} delivered`,   color: 'text-green-600' },
+          { label: 'Cancel Rate',     value: `${cancelRate}%`,    sub: `${statusBreakdown.cancelled ?? 0} cancelled`,   color: cancelRate > 10 ? 'text-red-600' : 'text-stone-800' },
         ].map(({ label, value, sub, color }) => (
           <div key={label} className="rounded-2xl border border-stone-200 bg-white p-5 shadow-card">
             <p className="text-xs font-semibold uppercase tracking-widest text-stone-400">{label}</p>
@@ -92,7 +145,7 @@ export default function AdminAnalytics() {
         <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-card">
           <p className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-0.5">Revenue</p>
           <p className="font-display text-lg font-bold text-stone-800 mb-5">Last 7 Days</p>
-          {orders.length === 0 ? (
+          {totalOrderCount === 0 ? (
             <div className="h-40 flex items-center justify-center text-stone-300 text-sm">No orders yet</div>
           ) : (
             <div className="flex h-40 items-end gap-2">
@@ -101,10 +154,9 @@ export default function AdminAnalytics() {
                 return (
                   <div key={day.label} className="group flex flex-1 flex-col items-center gap-1.5">
                     <div className="relative w-full flex flex-col items-center">
-                      <div
-                        className="w-full rounded-t-md bg-brand-200 group-hover:bg-brand-500 transition-all duration-500"
-                        style={{ height: `${Math.max(h, 4)}px` }}
-                      />
+                      <svg width="100%" height={Math.max(h, 4)} className="block overflow-visible" aria-hidden="true">
+                        <rect x="0" y="0" width="100%" height={Math.max(h, 4)} rx="3" className="fill-brand-200 group-hover:fill-brand-500 transition-all duration-500" />
+                      </svg>
                       {day.revenue > 0 && (
                         <div className="absolute -top-7 left-1/2 hidden -translate-x-1/2 rounded bg-stone-800 px-1.5 py-0.5 text-[10px] text-white group-hover:block whitespace-nowrap z-10">
                           ₹{day.revenue.toLocaleString('en-IN')}
@@ -123,7 +175,7 @@ export default function AdminAnalytics() {
         <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-card">
           <p className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-0.5">Orders</p>
           <p className="font-display text-lg font-bold text-stone-800 mb-5">Last 7 Days</p>
-          {orders.length === 0 ? (
+          {totalOrderCount === 0 ? (
             <div className="h-40 flex items-center justify-center text-stone-300 text-sm">No orders yet</div>
           ) : (
             <div className="flex h-40 items-end gap-2">
@@ -132,10 +184,9 @@ export default function AdminAnalytics() {
                 return (
                   <div key={day.label} className="group flex flex-1 flex-col items-center gap-1.5">
                     <div className="relative w-full flex flex-col items-center">
-                      <div
-                        className="w-full rounded-t-md bg-indigo-200 group-hover:bg-indigo-500 transition-all duration-500"
-                        style={{ height: `${Math.max(h, 4)}px` }}
-                      />
+                      <svg width="100%" height={Math.max(h, 4)} className="block overflow-visible" aria-hidden="true">
+                        <rect x="0" y="0" width="100%" height={Math.max(h, 4)} rx="3" className="fill-indigo-200 group-hover:fill-indigo-500 transition-all duration-500" />
+                      </svg>
                       {day.orders > 0 && (
                         <div className="absolute -top-7 left-1/2 hidden -translate-x-1/2 rounded bg-stone-800 px-1.5 py-0.5 text-[10px] text-white group-hover:block whitespace-nowrap z-10">
                           {day.orders} order{day.orders !== 1 ? 's' : ''}
@@ -154,14 +205,14 @@ export default function AdminAnalytics() {
         <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-card">
           <p className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-0.5">Distribution</p>
           <p className="font-display text-lg font-bold text-stone-800 mb-5">Order Statuses</p>
-          {Object.keys(breakdown).length === 0 ? (
+          {Object.keys(statusBreakdown).length === 0 ? (
             <div className="text-sm text-stone-300 text-center py-8">No orders yet</div>
           ) : (
             <div className="space-y-3">
-              {Object.entries(breakdown)
+              {Object.entries(statusBreakdown)
                 .sort((a, b) => b[1] - a[1])
                 .map(([status, count]) => {
-                  const pct = Math.round((count / orders.length) * 100);
+                  const pct = Math.round((count / totalOrderCount) * 100);
                   return (
                     <div key={status}>
                       <div className="flex items-center justify-between mb-1">
@@ -171,12 +222,12 @@ export default function AdminAnalytics() {
                         </div>
                         <span className="text-xs font-semibold text-stone-500">{count} ({pct}%)</span>
                       </div>
-                      <div className="h-1.5 w-full rounded-full bg-stone-100 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-700 ${STATUS_COLORS_SWATCH[status] ?? 'bg-stone-400'}`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
+                      <progress
+                        value={pct}
+                        max={100}
+                        aria-label={`${STATUS_LABELS[status as keyof typeof STATUS_LABELS] ?? status}: ${pct}%`}
+                        className="chart-bar h-1.5 w-full"
+                      />
                     </div>
                   );
                 })}
@@ -200,12 +251,12 @@ export default function AdminAnalytics() {
                       <span className="text-sm text-stone-700 capitalize">{cat}</span>
                       <span className="text-xs font-semibold text-stone-500">₹{rev.toLocaleString('en-IN')}</span>
                     </div>
-                    <div className="h-1.5 w-full rounded-full bg-stone-100 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-brand-400 transition-all duration-700"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
+                    <progress
+                      value={pct}
+                      max={100}
+                      aria-label={`${cat}: ${pct}%`}
+                      className="chart-bar h-1.5 w-full"
+                    />
                   </div>
                 );
               })}
@@ -226,7 +277,7 @@ export default function AdminAnalytics() {
         {topProds.length === 0 ? (
           <div className="py-14 text-center text-stone-400">
             <p className="text-sm font-medium">No sales data yet</p>
-            <p className="text-xs mt-1">{products.length} products in catalogue</p>
+            <p className="text-xs mt-1">{productCount} products in catalogue</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -255,9 +306,12 @@ export default function AdminAnalytics() {
                       <td className="px-4 py-4 font-semibold text-stone-800">₹{p.revenue.toLocaleString('en-IN')}</td>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-2">
-                          <div className="w-20 h-1.5 rounded-full bg-stone-100 overflow-hidden">
-                            <div className="h-full rounded-full bg-brand-400" style={{ width: `${share}%` }} />
-                          </div>
+                          <progress
+                            value={share}
+                            max={100}
+                            aria-label={`${p.name}: ${share}%`}
+                            className="chart-bar h-1.5 w-20"
+                          />
                           <span className="text-xs text-stone-400">{share}%</span>
                         </div>
                       </td>
