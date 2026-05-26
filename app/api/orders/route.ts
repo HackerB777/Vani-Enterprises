@@ -3,7 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createOrderPayload } from '@/lib/orders';
 import type { IProduct } from '@/lib/models/Product';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
+const supabase = getSupabaseAdmin();
 
 export async function GET() {
   try {
