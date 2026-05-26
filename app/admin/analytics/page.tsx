@@ -1,6 +1,4 @@
-import { connectDB } from '@/lib/mongodb';
-import { OrderModel } from '@/lib/models/Order';
-import { Product } from '@/lib/models/Product';
+import { supabase } from '@/lib/supabase';
 import { STATUS_LABELS } from '@/lib/orders';
 
 export const dynamic = 'force-dynamic';
@@ -17,87 +15,82 @@ const STATUS_COLORS_SWATCH: Record<string, string> = {
 };
 
 async function getAnalyticsData() {
-  await connectDB();
-
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
   sevenDaysAgo.setHours(0, 0, 0, 0);
 
   const [
-    totalOrderCount,
-    revenueAgg,
-    statusAgg,
-    last7DaysAgg,
-    topProductsAgg,
-    topCategoriesAgg,
-    productCount,
+    { count: totalOrderCount },
+    { data: allRevData },
+    { data: allStatusData },
+    { data: last7Data },
+    { data: allOrderItems },
+    { count: productCount },
   ] = await Promise.all([
-    OrderModel.countDocuments(),
-    OrderModel.aggregate([{ $group: { _id: null, total: { $sum: '$total' } } }]),
-    OrderModel.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
-    OrderModel.aggregate([
-      { $match: { createdAt: { $gte: sevenDaysAgo.toISOString() } } },
-      {
-        $group: {
-          _id: { $substr: ['$createdAt', 0, 10] },
-          revenue: { $sum: '$total' },
-          orders:  { $sum: 1 },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]),
-    OrderModel.aggregate([
-      { $unwind: '$items' },
-      {
-        $group: {
-          _id:     '$items.product.slug',
-          name:    { $first: '$items.product.name' },
-          revenue: { $sum: '$items.total' },
-          qty:     { $sum: '$items.quantity' },
-        },
-      },
-      { $sort: { revenue: -1 } },
-      { $limit: 5 },
-    ]),
-    OrderModel.aggregate([
-      { $unwind: '$items' },
-      {
-        $group: {
-          _id:     '$items.product.category',
-          revenue: { $sum: '$items.total' },
-        },
-      },
-      { $sort: { revenue: -1 } },
-      { $limit: 6 },
-    ]),
-    Product.countDocuments(),
+    supabase.from('orders').select('*', { count: 'exact', head: true }),
+    supabase.from('orders').select('total'),
+    supabase.from('orders').select('status'),
+    supabase.from('orders').select('total, createdAt')
+      .gte('createdAt', sevenDaysAgo.toISOString()),
+    supabase.from('orders').select('items, total'),
+    supabase.from('products').select('*', { count: 'exact', head: true }),
   ]);
 
-  const totalRevenue = revenueAgg[0]?.total ?? 0;
+  const totalRevenue = (allRevData ?? []).reduce((s: number, r: { total: number }) => s + (r.total ?? 0), 0);
 
   const statusBreakdown: Record<string, number> = {};
-  for (const s of statusAgg) statusBreakdown[s._id] = s.count;
-
-  // Build 7-day arrays
-  const revenue7: { label: string; revenue: number; orders: number }[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d     = new Date();
-    d.setDate(d.getDate() - i);
-    const key   = d.toISOString().slice(0, 10);
-    const label = d.toLocaleDateString('en-IN', { weekday: 'short' });
-    const found = last7DaysAgg.find((x: { _id: string; revenue: number; orders: number }) => x._id === key);
-    revenue7.push({ label, revenue: found?.revenue ?? 0, orders: found?.orders ?? 0 });
+  for (const o of (allStatusData ?? [])) {
+    statusBreakdown[o.status] = (statusBreakdown[o.status] ?? 0) + 1;
   }
 
-  const topProds = topProductsAgg.map((p: { name: string; revenue: number; qty: number }) => ({
-    name: p.name, revenue: p.revenue, qty: p.qty,
-  }));
+  const revenue7: { label: string; revenue: number; orders: number }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const key   = d.toISOString().slice(0, 10);
+    const label = d.toLocaleDateString('en-IN', { weekday: 'short' });
+    const dayOrders = (last7Data ?? []).filter((o: { createdAt: string }) => o.createdAt?.startsWith(key));
+    revenue7.push({
+      label,
+      revenue: dayOrders.reduce((s: number, o: { total: number }) => s + (o.total ?? 0), 0),
+      orders:  dayOrders.length,
+    });
+  }
 
-  const topCats: [string, number][] = topCategoriesAgg.map(
-    (c: { _id: string; revenue: number }) => [c._id, c.revenue]
-  );
+  // Aggregate top products and categories from JSONB items
+  const prodMap = new Map<string, { name: string; revenue: number; qty: number }>();
+  const catMap  = new Map<string, number>();
 
-  return { totalOrderCount, totalRevenue, statusBreakdown, revenue7, topProds, topCats, productCount };
+  for (const order of (allOrderItems ?? [])) {
+    const items = Array.isArray(order.items) ? order.items : [];
+    for (const item of items) {
+      const slug = item.product?.slug ?? item.slug ?? 'unknown';
+      const name = item.product?.name ?? item.name ?? slug;
+      const cat  = item.product?.category ?? item.category ?? 'other';
+      const qty  = item.quantity ?? 1;
+      const rev  = item.total ?? ((item.product?.price ?? 0) * qty);
+      const prev = prodMap.get(slug) ?? { name, revenue: 0, qty: 0 };
+      prodMap.set(slug, { name, revenue: prev.revenue + rev, qty: prev.qty + qty });
+      catMap.set(cat, (catMap.get(cat) ?? 0) + rev);
+    }
+  }
+
+  const topProds = Array.from(prodMap.values())
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 5);
+
+  const topCats: [string, number][] = Array.from(catMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6);
+
+  return {
+    totalOrderCount: totalOrderCount ?? 0,
+    totalRevenue,
+    statusBreakdown,
+    revenue7,
+    topProds,
+    topCats,
+    productCount: productCount ?? 0,
+  };
 }
 
 export default async function AdminAnalytics() {

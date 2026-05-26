@@ -3,16 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.106.2",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.10.0",
-    "mongoose": "^9.6.2",
-    "next": "14.2.5",
+    "next": "16.3.0-canary.27",
     "next-auth": "^4.24.14",
     "react": "18.3.1",
     "react-dom": "18.3.1",

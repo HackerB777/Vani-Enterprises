@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { ProductCard } from '@/components/store/ProductCard';
-import { connectDB, serialize } from '@/lib/mongodb';
-import { Product } from '@/lib/models/Product';
+import { supabase } from '@/lib/supabase';
 import { getDiscountPercent } from '@/lib/products';
 
+export const revalidate = 60;
+
 export default async function OffersPage() {
-  await connectDB();
-  const products = await Product.find({ isOnSale: true }).sort({ createdAt: -1 }).lean().then(serialize);
+  const { data } = await supabase.from('products').select('*').eq('isOnSale', true).order('createdAt', { ascending: false });
+  const products = data ?? [];
 
   const maxSaving = products.reduce((max, p) => {
     if (!p.originalPrice) return max;

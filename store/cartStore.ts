@@ -2,8 +2,6 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { IProduct } from '@/lib/models/Product';
 
-const storage = typeof window !== 'undefined' ? window.localStorage : ({} as Storage);
-
 export interface CartItem {
   product: IProduct;
   quantity: number;
@@ -52,7 +50,8 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: 'vani-cart-storage',
-      storage: createJSONStorage(() => storage),
+      storage: createJSONStorage(() => localStorage),
+      skipHydration: true,
     }
   )
 );

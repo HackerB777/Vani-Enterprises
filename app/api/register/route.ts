@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { connectDB } from '@/lib/mongodb';
-import { User } from '@/lib/models/User';
+import { supabase } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,19 +9,35 @@ export async function POST(request: NextRequest) {
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Name, email and password are required.' }, { status: 400 });
     }
-    if (password.length < 6) {
-      return NextResponse.json({ error: 'Password must be at least 6 characters.' }, { status: 400 });
+    if (password.length < 8) {
+      return NextResponse.json({ error: 'Password must be at least 8 characters.' }, { status: 400 });
+    }
+    if (!/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+      return NextResponse.json(
+        { error: 'Password must contain at least one uppercase letter and one number.' },
+        { status: 400 },
+      );
     }
 
-    await connectDB();
+    const { data: existing } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email.toLowerCase())
+      .single();
 
-    const exists = await User.findOne({ email: email.toLowerCase() }).lean();
-    if (exists) {
+    if (existing) {
       return NextResponse.json({ error: 'This email is already registered. Please sign in.' }, { status: 409 });
     }
 
     const hashed = await bcrypt.hash(password, 12);
-    await User.create({ name, email: email.toLowerCase(), password: hashed, phone, role: 'user' });
+    const { error } = await supabase.from('users').insert({
+      name,
+      email: email.toLowerCase(),
+      password: hashed,
+      phone: phone ?? null,
+      role: 'user',
+    });
+    if (error) throw error;
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (err) {

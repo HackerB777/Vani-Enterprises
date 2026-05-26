@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
-import { Navbar } from '@/components/store/Navbar';
-import { Footer } from '@/components/store/Footer';
+import { StoreShell } from '@/components/StoreShell';
 import { Providers } from '@/components/Providers';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -20,24 +21,21 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Vani Enterprises — Exclusive Home Collections, Chennai',
+    default: 'Vani Enterprises — Electronics, Gifts & Home Essentials',
     template: '%s | Vani Enterprises',
   },
   description:
-    'Premium home decor, textiles, kitchenware and lifestyle products from Chennai. Free shipping on orders above ₹999.',
-  keywords: ['home decor', 'Chennai', 'textiles', 'sarees', 'kitchenware', 'India shopping'],
+    'Shop electronics, gifts, home decor, kitchen & lifestyle products online. Free shipping on orders above ₹999. Serving all of India.',
+  keywords: ['electronics', 'home decor', 'gifts', 'kitchenware', 'Chennai', 'India shopping', 'online store'],
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const session = await getServerSession(authOptions);
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
       <body className="min-h-screen bg-stone-50 font-sans text-stone-900 antialiased">
-        <Providers>
-          <div className="flex min-h-screen flex-col">
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
+        <Providers session={session}>
+          <StoreShell>{children}</StoreShell>
         </Providers>
       </body>
     </html>

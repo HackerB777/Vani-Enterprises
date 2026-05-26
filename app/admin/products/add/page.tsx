@@ -1,7 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { useState, useRef, useCallback, useId } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -14,6 +12,25 @@ interface ImagePreview {
   size:      number;
   isPrimary: boolean;
   file:      File;
+}
+
+/* Upload a single file directly to Cloudinary (browser → CDN, not through Vercel) */
+async function uploadImage(file: File): Promise<string> {
+  const sigRes = await fetch('/api/upload/sign');
+  if (!sigRes.ok) throw new Error('Failed to get upload authorisation');
+  const { signature, timestamp, folder, apiKey, cloudName } = await sigRes.json();
+
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('signature', signature);
+  fd.append('timestamp', String(timestamp));
+  fd.append('folder', folder);
+  fd.append('api_key', apiKey);
+
+  const res  = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: 'POST', body: fd });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message ?? 'Upload failed');
+  return data.secure_url as string;
 }
 
 function slugify(text: string) {
@@ -109,16 +126,10 @@ export default function AddProduct() {
         : images;
 
       for (const img of ordered) {
-        const fd = new FormData();
-        fd.append('file', img.file);
-        fd.append('folder', 'vani-products');
-        const res = await fetch('/api/upload', { method: 'POST', body: fd });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? 'Image upload failed');
-        imageUrls.push(data.url);
+        imageUrls.push(await uploadImage(img.file));
       }
 
-      // 2. Save to MongoDB
+      // 2. Save to Supabase
       const res = await fetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

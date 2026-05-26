@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { connectDB } from '@/lib/mongodb';
-import { Settings } from '@/lib/models/Settings';
+import { supabase } from '@/lib/supabase';
 
 export async function GET() {
   try {
@@ -10,9 +9,8 @@ export async function GET() {
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    await connectDB();
-    const s = await Settings.findById('main').lean();
-    return NextResponse.json(s ?? { adminMobile: '', developerMobile: '' });
+    const { data } = await supabase.from('settings').select('*').eq('id', 'main').single();
+    return NextResponse.json(data ?? { adminMobile: '', developerMobile: '' });
   } catch {
     return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
   }
@@ -24,10 +22,14 @@ export async function POST(request: NextRequest) {
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    await connectDB();
     const body = await request.json();
-    const s = await Settings.findByIdAndUpdate('main', { $set: body }, { upsert: true, new: true }).lean();
-    return NextResponse.json(s);
+    const { data, error } = await supabase
+      .from('settings')
+      .upsert({ id: 'main', ...body })
+      .select()
+      .single();
+    if (error) throw error;
+    return NextResponse.json(data);
   } catch {
     return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 });
   }

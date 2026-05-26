@@ -47,7 +47,7 @@ export default function AboutPage() {
               { value: '15+', label: 'Years of Excellence' },
               { value: '80+', label: 'Artisan Partners' },
               { value: '500+', label: 'Products Curated' },
-              { value: '12K+', label: 'Happy Customers' },
+              { value: '20K+', label: 'Happy Customers' },
             ].map((stat) => (
               <div key={stat.label} className="rounded-2xl border border-stone-200 bg-white p-6 text-center shadow-soft">
                 <p className="font-display text-4xl font-bold text-brand-700">{stat.value}</p>

@@ -53,11 +53,12 @@ export function createOrderPayload(
   items: OrderItem[],
   shippingAddress: ShippingAddress,
   paymentMethod: 'razorpay' | 'cod',
+  discount = 0,
 ): Order {
   const subtotal       = calculateSubtotal(items);
   const shippingCharge = subtotal >= 999 ? 0 : 99;
   const tax            = Math.round(subtotal * 0.05);
-  const total          = subtotal + shippingCharge + tax;
+  const total          = Math.max(0, subtotal + shippingCharge + tax - discount);
 
   return {
     id:            `VE-${Date.now()}`,

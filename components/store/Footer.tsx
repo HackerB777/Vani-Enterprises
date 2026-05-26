@@ -34,12 +34,12 @@ const quickLinks = [
 ];
 
 const categories = [
-  { label: 'Textiles & Sarees', href: '/shop?category=textiles' },
-  { label: 'Home Decor',        href: '/shop?category=decor' },
-  { label: 'Bedding',           href: '/shop?category=bedding' },
+  { label: 'Electronics',        href: '/shop?category=electronics' },
   { label: 'Kitchen & Cookware', href: '/shop?category=kitchen' },
-  { label: 'Dining',            href: '/shop?category=dining' },
-  { label: 'Bath & Wellness',   href: '/shop?category=bath' },
+  { label: 'Clothing & Apparel', href: '/shop?category=clothing' },
+  { label: 'Home Decor',         href: '/shop?category=decor' },
+  { label: 'Gifts & Hampers',    href: '/shop?category=gifts' },
+  { label: 'Bath & Wellness',    href: '/shop?category=bath' },
 ];
 
 const support = [
@@ -73,7 +73,7 @@ export function Footer() {
           <div>
             <Link href="/" aria-label="Vani Enterprises – Home" className="inline-block">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.jpg" alt="Vani Enterprises" className="logo-screen h-14 w-auto" />
+              <img src="/logo.jpg" alt="Vani Enterprises" loading="lazy" className="logo-screen h-14 w-auto" />
             </Link>
             <p className="mt-4 text-sm leading-relaxed text-stone-500">
               Exclusive home collections crafted with care, delivered from Chennai to your doorstep across India.

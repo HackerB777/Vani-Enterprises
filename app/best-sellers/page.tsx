@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { ProductCard } from '@/components/store/ProductCard';
-import { connectDB, serialize } from '@/lib/mongodb';
-import { Product } from '@/lib/models/Product';
+import { supabase } from '@/lib/supabase';
+
+export const revalidate = 60;
 
 export default async function BestSellersPage() {
-  await connectDB();
-  const products = await Product.find({ isBestSeller: true }).sort({ createdAt: -1 }).lean().then(serialize);
+  const { data } = await supabase.from('products').select('*').eq('isBestSeller', true).order('createdAt', { ascending: false });
+  const products = data ?? [];
 
   return (
     <div className="min-h-screen bg-stone-50">

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useMemo } from 'react';
 import { useCartStore } from '@/store/cartStore';
 import { categoryGradients } from '@/lib/products';
@@ -75,9 +76,21 @@ export default function CartPage() {
                 const gradient = categoryGradients[item.product.category] ?? 'from-stone-100 to-stone-50';
                 return (
                   <div key={item.product.slug} className="flex gap-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-soft">
-                    {/* Image placeholder */}
+                    {/* Product image */}
                     <Link href={`/product/${item.product.slug}`} className="flex-shrink-0">
-                      <div className={`h-24 w-24 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-3xl opacity-60`} />
+                      <div className="relative h-24 w-24 overflow-hidden rounded-xl bg-stone-100">
+                        {item.product.images?.[0] ? (
+                          <Image
+                            src={item.product.images[0]}
+                            alt={item.product.name}
+                            fill
+                            className="object-contain p-1.5"
+                            sizes="96px"
+                          />
+                        ) : (
+                          <div className={`h-full w-full bg-gradient-to-br ${gradient} opacity-60`} />
+                        )}
+                      </div>
                     </Link>
 
                     {/* Info */}

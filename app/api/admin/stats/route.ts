@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { connectDB } from '@/lib/mongodb';
-import { Product } from '@/lib/models/Product';
-import { OrderModel } from '@/lib/models/Order';
+import { supabase } from '@/lib/supabase';
 
 export async function GET() {
   try {
@@ -12,45 +10,38 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await connectDB();
-
-    const today    = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
+    const today    = new Date(); today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
 
     const [
-      totalOrders,
-      todayOrders,
-      pendingOrders,
-      deliveredOrders,
-      totalProducts,
-      lowStockProducts,
-      revenueAgg,
-      todayRevenueAgg,
+      { count: totalOrders },
+      { count: todayOrders },
+      { count: pendingOrders },
+      { count: deliveredOrders },
+      { count: totalProducts },
+      { count: lowStockCount },
+      { data: revenueData },
+      { data: todayRevData },
     ] = await Promise.all([
-      OrderModel.countDocuments(),
-      OrderModel.countDocuments({ createdAt: { $gte: today.toISOString(), $lt: tomorrow.toISOString() } }),
-      OrderModel.countDocuments({ status: { $in: ['placed', 'confirmed', 'processing'] } }),
-      OrderModel.countDocuments({ status: 'delivered' }),
-      Product.countDocuments(),
-      Product.countDocuments({ stock: { $lt: 10, $gt: -1 } }),
-      OrderModel.aggregate([{ $group: { _id: null, total: { $sum: '$total' } } }]),
-      OrderModel.aggregate([
-        { $match: { createdAt: { $gte: today.toISOString(), $lt: tomorrow.toISOString() } } },
-        { $group: { _id: null, total: { $sum: '$total' } } },
-      ]),
+      supabase.from('orders').select('*', { count: 'exact', head: true }),
+      supabase.from('orders').select('*', { count: 'exact', head: true })
+        .gte('createdAt', today.toISOString()).lt('createdAt', tomorrow.toISOString()),
+      supabase.from('orders').select('*', { count: 'exact', head: true })
+        .in('status', ['placed', 'confirmed', 'processing']),
+      supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'delivered'),
+      supabase.from('products').select('*', { count: 'exact', head: true }),
+      supabase.from('products').select('*', { count: 'exact', head: true }).lt('stock', 10).gte('stock', 0),
+      supabase.from('orders').select('total'),
+      supabase.from('orders').select('total')
+        .gte('createdAt', today.toISOString()).lt('createdAt', tomorrow.toISOString()),
     ]);
 
+    const totalRevenue = (revenueData ?? []).reduce((s: number, r: { total: number }) => s + (r.total ?? 0), 0);
+    const todayRevenue = (todayRevData ?? []).reduce((s: number, r: { total: number }) => s + (r.total ?? 0), 0);
+
     return NextResponse.json({
-      totalOrders,
-      todayOrders,
-      pendingOrders,
-      deliveredOrders,
-      totalProducts,
-      lowStockCount: lowStockProducts,
-      totalRevenue:  revenueAgg[0]?.total ?? 0,
-      todayRevenue:  todayRevenueAgg[0]?.total ?? 0,
+      totalOrders, todayOrders, pendingOrders, deliveredOrders,
+      totalProducts, lowStockCount, totalRevenue, todayRevenue,
     });
   } catch (err) {
     console.error('GET /api/admin/stats:', err);

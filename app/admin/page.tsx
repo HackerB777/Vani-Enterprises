@@ -1,7 +1,5 @@
 import Link from 'next/link';
-import { connectDB, serialize } from '@/lib/mongodb';
-import { Product } from '@/lib/models/Product';
-import { OrderModel } from '@/lib/models/Order';
+import { supabase } from '@/lib/supabase';
 import { STATUS_LABELS } from '@/lib/orders';
 import type { Order } from '@/lib/orders';
 
@@ -29,75 +27,71 @@ function KpiCard({ title, value, sub, color }: { title: string; value: string; s
 }
 
 async function getAdminData() {
-  await connectDB();
-
-  const today    = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-  sevenDaysAgo.setHours(0, 0, 0, 0);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+  const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6); sevenDaysAgo.setHours(0, 0, 0, 0);
 
   const [
-    totalOrders,
-    todayOrderDocs,
-    pendingOrders,
-    deliveredOrders,
-    totalProducts,
-    lowStockCount,
-    revenueAgg,
-    todayRevenueAgg,
-    recentOrders,
-    statusAgg,
-    last7DaysAgg,
+    { count: totalOrders },
+    { count: todayOrderCount },
+    { count: pendingOrders },
+    { count: deliveredOrders },
+    { count: totalProducts },
+    { count: lowStockCount },
+    { data: allRevData },
+    { data: todayRevData },
+    { data: allStatusData },
+    { data: last7Data },
+    { data: recentData },
   ] = await Promise.all([
-    OrderModel.countDocuments(),
-    OrderModel.countDocuments({ createdAt: { $gte: today.toISOString(), $lt: tomorrow.toISOString() } }),
-    OrderModel.countDocuments({ status: { $in: ['placed', 'confirmed', 'processing'] } }),
-    OrderModel.countDocuments({ status: 'delivered' }),
-    Product.countDocuments(),
-    Product.countDocuments({ stock: { $gt: -1, $lt: 10 } }),
-    OrderModel.aggregate([{ $group: { _id: null, total: { $sum: '$total' } } }]),
-    OrderModel.aggregate([
-      { $match: { createdAt: { $gte: today.toISOString(), $lt: tomorrow.toISOString() } } },
-      { $group: { _id: null, total: { $sum: '$total' } } },
-    ]),
-    OrderModel.find({}).sort({ createdAt: -1 }).limit(8).lean(),
-    OrderModel.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
-    OrderModel.aggregate([
-      { $match: { createdAt: { $gte: sevenDaysAgo.toISOString() } } },
-      {
-        $group: {
-          _id: { $substr: ['$createdAt', 0, 10] },
-          revenue: { $sum: '$total' },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]),
+    supabase.from('orders').select('*', { count: 'exact', head: true }),
+    supabase.from('orders').select('*', { count: 'exact', head: true })
+      .gte('createdAt', today.toISOString()).lt('createdAt', tomorrow.toISOString()),
+    supabase.from('orders').select('*', { count: 'exact', head: true })
+      .in('status', ['placed', 'confirmed', 'processing']),
+    supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'delivered'),
+    supabase.from('products').select('*', { count: 'exact', head: true }),
+    supabase.from('products').select('*', { count: 'exact', head: true }).lt('stock', 10).gte('stock', 0),
+    supabase.from('orders').select('total'),
+    supabase.from('orders').select('total')
+      .gte('createdAt', today.toISOString()).lt('createdAt', tomorrow.toISOString()),
+    supabase.from('orders').select('status'),
+    supabase.from('orders').select('total, createdAt')
+      .gte('createdAt', sevenDaysAgo.toISOString()),
+    supabase.from('orders').select('*').order('createdAt', { ascending: false }).limit(8),
   ]);
 
-  const totalRevenue   = revenueAgg[0]?.total ?? 0;
-  const todayRevenue   = todayRevenueAgg[0]?.total ?? 0;
+  const totalRevenue = (allRevData ?? []).reduce((s: number, r: { total: number }) => s + (r.total ?? 0), 0);
+  const todayRevenue = (todayRevData ?? []).reduce((s: number, r: { total: number }) => s + (r.total ?? 0), 0);
 
   const statusBreakdown: Record<string, number> = {};
-  for (const s of statusAgg) statusBreakdown[s._id] = s.count;
+  for (const o of (allStatusData ?? [])) {
+    statusBreakdown[o.status] = (statusBreakdown[o.status] ?? 0) + 1;
+  }
 
-  // Build last 7 days revenue array
   const revenue: { label: string; revenue: number }[] = [];
   for (let i = 6; i >= 0; i--) {
-    const d    = new Date();
-    d.setDate(d.getDate() - i);
-    const key  = d.toISOString().slice(0, 10);
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const key   = d.toISOString().slice(0, 10);
     const label = d.toLocaleDateString('en-IN', { weekday: 'short' });
-    const found = last7DaysAgg.find((x: { _id: string; revenue: number }) => x._id === key);
-    revenue.push({ label, revenue: found?.revenue ?? 0 });
+    const dayRev = (last7Data ?? [])
+      .filter((o: { createdAt: string }) => o.createdAt?.startsWith(key))
+      .reduce((s: number, o: { total: number }) => s + (o.total ?? 0), 0);
+    revenue.push({ label, revenue: dayRev });
   }
 
   return {
-    stats: { totalOrders, todayOrders: todayOrderDocs, pendingOrders, deliveredOrders, totalProducts, lowStockCount, totalRevenue, todayRevenue },
-    recentOrders: serialize(recentOrders) as unknown as Order[],
+    stats: {
+      totalOrders: totalOrders ?? 0,
+      todayOrders: todayOrderCount ?? 0,
+      pendingOrders: pendingOrders ?? 0,
+      deliveredOrders: deliveredOrders ?? 0,
+      totalProducts: totalProducts ?? 0,
+      lowStockCount: lowStockCount ?? 0,
+      totalRevenue,
+      todayRevenue,
+    },
+    recentOrders: (recentData ?? []) as unknown as Order[],
     revenue,
     statusBreakdown,
   };

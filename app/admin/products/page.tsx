@@ -1,7 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { categories } from '@/lib/products';
@@ -39,7 +37,7 @@ export default function AdminProducts() {
       if (sortBy === 'price-asc')  return a.price - b.price;
       if (sortBy === 'price-desc') return b.price - a.price;
       if (sortBy === 'name')       return a.name.localeCompare(b.name);
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      return new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime();
     });
 
   async function handleDelete(slug: string, name: string) {
@@ -129,7 +127,7 @@ export default function AdminProducts() {
                   <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-stone-400">Price</th>
                   <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-stone-400">Stock</th>
                   <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-stone-400">Badges</th>
-                  <th className="px-4 py-3.5" aria-label="Actions"></th>
+                  <th className="px-4 py-3.5"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-50">

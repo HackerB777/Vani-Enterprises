@@ -36,8 +36,10 @@ export default function AdminLoginPage() {
     <div className="fixed inset-0 flex items-center justify-center bg-stone-950 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.jpg" alt="Vani Enterprises" className="mx-auto h-14 w-auto rounded-xl" />
+          <div className="mx-auto flex h-16 w-24 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-lg">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.jpg" alt="Vani Enterprises" className="h-full w-auto object-contain" />
+          </div>
           <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.35em] text-stone-500">Admin Panel</p>
         </div>
 

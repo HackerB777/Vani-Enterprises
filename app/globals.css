@@ -123,3 +123,32 @@ progress.chart-bar::-moz-progress-bar      { background: #c2410c; border-radius:
   outline-offset: 2px;
   border-radius: 6px;
 }
+
+/* ── Hero slider — dynamic colours via CSS custom properties ── */
+/* Set --slide-from / --slide-via / --slide-to / --slide-accent on <section> */
+.hero-slider {
+  background: linear-gradient(135deg, var(--slide-from) 0%, var(--slide-via) 50%, var(--slide-to) 100%);
+}
+.hero-dot-pattern {
+  background-image: radial-gradient(circle, white 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.hero-accent     { color: var(--slide-accent); }
+.hero-accent-bg  { background: var(--slide-accent); }
+.hero-from-color { color: var(--slide-from); }
+.hero-search-btn {
+  background: linear-gradient(135deg, var(--slide-from), var(--slide-to));
+}
+.hero-progress  { animation: progressBar 5.5s linear forwards; transform-origin: left; }
+
+/* Hide scrollbar but keep scroll functionality */
+.no-scrollbar::-webkit-scrollbar { display: none; }   /* Chrome, Safari, Edge, Samsung */
+.no-scrollbar { -ms-overflow-style: none; }            /* IE / legacy Edge */
+@supports (scrollbar-width: none) {
+  .no-scrollbar { scrollbar-width: none; }             /* Firefox 64+, Chrome 121+ */
+}
+
+/* Float animation delays for hero badges */
+.delay-0   { animation-delay: 0s; }
+.delay-800 { animation-delay: 0.8s; }
+.delay-1600 { animation-delay: 1.6s; }

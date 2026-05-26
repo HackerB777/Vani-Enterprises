@@ -1,7 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { useState, useRef, useCallback, useId, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -16,6 +14,24 @@ interface ImagePreview {
   isPrimary:   boolean;
   file?:       File;
   isExisting?: boolean;
+}
+
+async function uploadImage(file: File): Promise<string> {
+  const sigRes = await fetch('/api/upload/sign');
+  if (!sigRes.ok) throw new Error('Failed to get upload authorisation');
+  const { signature, timestamp, folder, apiKey, cloudName } = await sigRes.json();
+
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('signature', signature);
+  fd.append('timestamp', String(timestamp));
+  fd.append('folder', folder);
+  fd.append('api_key', apiKey);
+
+  const res  = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: 'POST', body: fd });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message ?? 'Upload failed');
+  return data.secure_url as string;
 }
 
 function formatBytes(bytes: number) {
@@ -146,13 +162,7 @@ export default function EditProduct() {
         if (img.isExisting) {
           imageUrls.push(img.url);
         } else if (img.file) {
-          const fd = new FormData();
-          fd.append('file', img.file);
-          fd.append('folder', 'vani-products');
-          const r = await fetch('/api/upload', { method: 'POST', body: fd });
-          const d = await r.json();
-          if (!r.ok) throw new Error(d.error ?? 'Image upload failed');
-          imageUrls.push(d.url);
+          imageUrls.push(await uploadImage(img.file));
         }
       }
 
@@ -326,6 +336,7 @@ export default function EditProduct() {
               <span className={`text-[11px] font-medium ${form.shortDesc.length > 160 ? 'text-red-500' : 'text-stone-400'}`}>{form.shortDesc.length}/160</span>
             </div>
             <textarea required rows={2} maxLength={200} value={form.shortDesc} onChange={(e) => set('shortDesc', e.target.value)}
+              placeholder="Brief description of the product…"
               className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-sm outline-none transition focus:border-brand-400 resize-none" />
           </div>
           <div>

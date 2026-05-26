@@ -2,8 +2,6 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { IProduct } from '@/lib/models/Product';
 
-const storage = typeof window !== 'undefined' ? window.localStorage : ({} as Storage);
-
 interface WishlistState {
   items: IProduct[];
   toggleItem: (product: IProduct) => void;
@@ -30,7 +28,8 @@ export const useWishlistStore = create<WishlistState>()(
     }),
     {
       name: 'vani-wishlist-storage',
-      storage: createJSONStorage(() => storage),
+      storage: createJSONStorage(() => localStorage),
+      skipHydration: true,
     }
   )
 );

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { connectDB } from '@/lib/mongodb';
-import { Product } from '@/lib/models/Product';
+import { supabase } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,24 +14,23 @@ export async function GET(request: NextRequest) {
     const search       = searchParams.get('search');
     const limit        = searchParams.get('limit');
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const query: Record<string, any> = {};
-    if (category)               query.category     = category;
-    if (isBestSeller === 'true') query.isBestSeller = true;
-    if (isNewArrival === 'true') query.isNewArrival = true;
-    if (isOnSale     === 'true') query.isOnSale     = true;
-    if (isFeatured   === 'true') query.isFeatured   = true;
-    if (search) query.$or = [
-      { name:        { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } },
-    ];
+    let q = supabase.from('products').select('*').order('createdAt', { ascending: false });
 
-    let q = Product.find(query).sort({ createdAt: -1 });
-    if (limit) q = q.limit(Number(limit));
+    if (category)               q = q.eq('category', category);
+    if (isBestSeller === 'true') q = q.eq('isBestSeller', true);
+    if (isNewArrival === 'true') q = q.eq('isNewArrival', true);
+    if (isOnSale     === 'true') q = q.eq('isOnSale', true);
+    if (isFeatured   === 'true') q = q.eq('isFeatured', true);
+    if (search) {
+      // Strip chars that PostgREST uses as filter operators to prevent filter injection
+      const safe = search.replace(/[%_(),.|*^]/g, ' ').trim().slice(0, 100);
+      if (safe) q = q.or(`name.ilike.%${safe}%,description.ilike.%${safe}%`);
+    }
+    if (limit)                   q = q.limit(Number(limit));
 
-    await connectDB();
-    const products = await q.lean();
-    return NextResponse.json(products);
+    const { data, error } = await q;
+    if (error) throw error;
+    return NextResponse.json(data ?? []);
   } catch (err) {
     console.error('GET /api/products:', err);
     return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
@@ -45,11 +43,14 @@ export async function POST(request: NextRequest) {
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    await connectDB();
     const body = await request.json();
-    const now  = new Date().toISOString();
-    const product = await Product.create({ ...body, createdAt: now, updatedAt: now });
-    return NextResponse.json(product.toObject(), { status: 201 });
+    const { data, error } = await supabase
+      .from('products')
+      .insert({ ...body, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
+      .select()
+      .single();
+    if (error) throw error;
+    return NextResponse.json(data, { status: 201 });
   } catch (err: unknown) {
     console.error('POST /api/products:', err);
     const msg = err instanceof Error ? err.message : 'Failed to create product';

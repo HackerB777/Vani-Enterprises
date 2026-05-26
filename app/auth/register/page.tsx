@@ -1,7 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -20,8 +18,8 @@ export default function RegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    if (form.password.length < 6) {
-      setError('Password must be at least 6 characters.');
+    if (form.password.length < 8 || !/[A-Z]/.test(form.password) || !/[0-9]/.test(form.password)) {
+      setError('Password must be at least 8 characters and include an uppercase letter and a number.');
       return;
     }
     setLoading(true);
@@ -89,7 +87,7 @@ export default function RegisterPage() {
               <span className="mb-1.5 block text-xs font-semibold text-stone-700">Password</span>
               <div className="relative">
                 <input type={showPass ? 'text' : 'password'} value={form.password} onChange={set('password')}
-                  placeholder="Min. 6 characters" required autoComplete="new-password"
+                  placeholder="Min. 8 chars, 1 uppercase, 1 number" required autoComplete="new-password"
                   className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 pr-12 text-sm text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white" />
                 <button type="button" onClick={() => setShowPass(!showPass)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-stone-500 hover:text-stone-700 transition-colors">

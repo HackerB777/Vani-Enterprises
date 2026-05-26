@@ -1,10 +1,9 @@
-import mongoose from 'mongoose';
-
 export interface IProduct {
-  _id: string;
+  id: string;
   name: string;
   slug: string;
   category: string;
+  subcategory?: string;
   description?: string;
   details?: string[];
   rating?: number;
@@ -20,26 +19,3 @@ export interface IProduct {
   createdAt: string;
   updatedAt: string;
 }
-
-const schema = new mongoose.Schema<IProduct>({
-  name:          { type: String, required: true },
-  slug:          { type: String, required: true, unique: true },
-  category:      { type: String, required: true },
-  description:   String,
-  details:       [String],
-  rating:        Number,
-  reviewCount:   Number,
-  price:         { type: Number, required: true },
-  originalPrice: Number,
-  stock:         Number,
-  images:        [String],
-  isFeatured:    Boolean,
-  isBestSeller:  Boolean,
-  isNewArrival:  Boolean,
-  isOnSale:      Boolean,
-  createdAt:     { type: String, default: () => new Date().toISOString() },
-  updatedAt:     { type: String, default: () => new Date().toISOString() },
-});
-
-export const Product = (mongoose.models.Product as mongoose.Model<IProduct>) ||
-  mongoose.model<IProduct>('Product', schema);
