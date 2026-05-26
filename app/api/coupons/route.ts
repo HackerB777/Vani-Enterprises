@@ -3,8 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 
-function isAdmin(session: Awaited<ReturnType<typeof getServerSession>>) {
-  return session && (session.user as { role?: string }).role === 'admin';
+function isAdmin(session: { user?: { role?: string } } | null) {
+  return session?.user?.role === 'admin';
 }
 
 export async function GET() {
