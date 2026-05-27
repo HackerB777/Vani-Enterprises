@@ -64,7 +64,7 @@ export default function EditProduct() {
   });
   const [details, setDetails]   = useState<string[]>(['']);
 
-  /* ── Load product from MongoDB ── */
+  /* ── Load product ── */
   useEffect(() => {
     fetch(`/api/products/${slug}`)
       .then((r) => r.json())
@@ -75,8 +75,8 @@ export default function EditProduct() {
             name:          p.name,
             slug:          p.slug,
             category:      p.category,
-            subcategory:   '',
-            shortDesc:     p.description ?? '',
+            subcategory:   p.subcategory  ?? '',
+            shortDesc:     p.description  ?? '',
             longDesc:      '',
             price:         String(p.price),
             originalPrice: p.originalPrice ? String(p.originalPrice) : '',
@@ -86,7 +86,7 @@ export default function EditProduct() {
             isBestSeller:  p.isBestSeller  ?? false,
             isOnSale:      p.isOnSale      ?? false,
           });
-          setDetails(['']);
+          setDetails(p.details?.length ? p.details : ['']);
           setImages(
             (p.images ?? []).map((url, i) => ({
               id: `existing-${i}`,
@@ -173,10 +173,12 @@ export default function EditProduct() {
           slug:          form.slug,
           name:          form.name,
           description:   form.shortDesc,
+          details:       details.filter(Boolean),
           price,
           originalPrice: origPrice > 0 ? origPrice : undefined,
           stock:         form.stock !== '' ? parseInt(form.stock) : undefined,
           category:      form.category,
+          subcategory:   form.subcategory || undefined,
           images:        imageUrls,
           isFeatured:    form.isFeatured,
           isNewArrival:  form.isNewArrival,

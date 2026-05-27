@@ -45,8 +45,8 @@ input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input[type='number'] { -moz-appearance: textfield; appearance: textfield; }
 
-/* Logo blend — makes the black JPEG background invisible on dark containers */
-.logo-screen { mix-blend-mode: screen; }
+/* Logo blend removed — mix-blend-mode: screen caused logo invisible on white bg */
+.logo-screen {}
 
 /* Scroll animation base state */
 .anim-hidden {

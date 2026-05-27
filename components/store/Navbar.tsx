@@ -91,7 +91,7 @@ export function Navbar() {
           <Link href="/" aria-label="Vani Enterprises – Home" className="flex-shrink-0">
             <div className="flex h-10 w-14 items-center justify-center overflow-hidden rounded-lg bg-white">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.jpg" alt="Vani Enterprises" loading="lazy" className="logo-screen h-full w-auto object-contain" />
+              <img src="/logo.jpg" alt="Vani Enterprises" loading="lazy" className="h-full w-auto object-contain" />
             </div>
           </Link>
 
@@ -261,7 +261,7 @@ export function Navbar() {
               <Link href="/" onClick={() => setMenuOpen(false)}>
                 <div className="flex h-9 w-12 items-center justify-center overflow-hidden rounded-lg bg-white">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/logo.jpg" alt="Vani Enterprises" loading="lazy" className="logo-screen h-full w-auto" />
+                  <img src="/logo.jpg" alt="Vani Enterprises" loading="lazy" className="h-full w-auto object-contain" />
                 </div>
               </Link>
               <button type="button" onClick={closeMenu} aria-label="Close menu"

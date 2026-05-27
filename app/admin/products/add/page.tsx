@@ -137,7 +137,6 @@ export default function AddProduct() {
           slug:          form.slug,
           name:          form.name,
           description:   form.shortDesc,
-          longDesc:      form.longDesc,
           details:       details.filter(Boolean),
           price,
           originalPrice: origPrice > 0 ? origPrice : undefined,

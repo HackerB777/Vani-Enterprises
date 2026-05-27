@@ -53,8 +53,8 @@ export async function POST(request: NextRequest) {
     if (error) throw error;
     return NextResponse.json(data, { status: 201 });
   } catch (err: unknown) {
-    console.error('POST /api/products:', err);
     const msg = err instanceof Error ? err.message : 'Failed to create product';
+    console.error('POST /api/products:', msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
