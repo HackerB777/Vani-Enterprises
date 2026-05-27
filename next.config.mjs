@@ -12,7 +12,7 @@ const nextConfig = {
     imageSizes:  [16, 32, 48, 64, 96, 128, 256],
   },
   experimental: {
-    serverComponentsExternalPackages: ['bcryptjs', 'cloudinary'],
+    serverComponentsExternalPackages: ['bcryptjs', 'cloudinary', 'razorpay'],
     optimizePackageImports: ['zustand'],
   },
   compiler: {

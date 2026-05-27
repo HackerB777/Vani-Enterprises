@@ -9,20 +9,13 @@ import { useCartStore } from '@/store/cartStore';
 const STATES = ['Andhra Pradesh', 'Karnataka', 'Kerala', 'Maharashtra', 'Rajasthan', 'Tamil Nadu', 'Telangana', 'Uttar Pradesh', 'West Bengal', 'Delhi', 'Other'];
 
 interface Address {
-  name: string;
-  email: string;
-  phone: string;
-  addressLine1: string;
-  city: string;
-  state: string;
-  pincode: string;
+  name: string; email: string; phone: string;
+  addressLine1: string; city: string; state: string; pincode: string;
 }
 
 const EMPTY: Address = { name: '', email: '', phone: '', addressLine1: '', city: '', state: '', pincode: '' };
 
-function Field({
-  label, type = 'text', value, onChange, placeholder, required = true,
-}: {
+function Field({ label, type = 'text', value, onChange, placeholder, required = true }: {
   label: string; type?: string; value: string; onChange: (v: string) => void;
   placeholder?: string; required?: boolean;
 }) {
@@ -32,31 +25,40 @@ function Field({
         {label}{required && <span className="ml-0.5 text-red-500">*</span>}
       </span>
       <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        required={required}
+        type={type} value={value} onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder} required={required}
         className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white"
       />
     </label>
   );
 }
 
+function loadRazorpayScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (document.getElementById('razorpay-script')) { resolve(); return; }
+    const s = document.createElement('script');
+    s.id = 'razorpay-script';
+    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('Failed to load Razorpay'));
+    document.body.appendChild(s);
+  });
+}
+
 export default function CheckoutPage() {
-  const router     = useRouter();
-  const items      = useCartStore((s) => s.items);
-  const clearCart  = useCartStore((s) => s.clearCart);
-  const [addr, setAddr]   = useState<Address>(EMPTY);
-  const [payment, setPayment] = useState<'razorpay' | 'cod'>('razorpay');
+  const router    = useRouter();
+  const items     = useCartStore((s) => s.items);
+  const clearCart = useCartStore((s) => s.clearCart);
+  const [addr, setAddr]               = useState<Address>(EMPTY);
+  const [payment, setPayment]         = useState<'razorpay' | 'cod'>('razorpay');
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{
     code: string; discountType: 'percentage' | 'flat'; discountValue: number; minOrderAmount: number;
   } | null>(null);
-  const [couponMsg,   setCouponMsg]   = useState<{ text: string; ok: boolean } | null>(null);
-  const [applying,    setApplying]    = useState(false);
-  const [loading,     setLoading]     = useState(false);
-  const [error,       setError]       = useState('');
+  const [couponMsg, setCouponMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [applying, setApplying]   = useState(false);
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState('');
 
   const subtotal = useMemo(() => items.reduce((s, i) => s + i.product.price * i.quantity, 0), [items]);
   const shipping = subtotal >= 999 || subtotal === 0 ? 0 : 99;
@@ -74,35 +76,23 @@ export default function CheckoutPage() {
   async function handleApplyCoupon() {
     const code = couponInput.trim().toUpperCase();
     if (!code) return;
-    setApplying(true);
-    setCouponMsg(null);
-    setAppliedCoupon(null);
+    setApplying(true); setCouponMsg(null); setAppliedCoupon(null);
     try {
       const res  = await fetch(`/api/coupons/${code}`);
       const data = await res.json();
-      if (!res.ok) {
-        setCouponMsg({ text: data.error ?? 'Invalid coupon', ok: false });
-        return;
-      }
+      if (!res.ok) { setCouponMsg({ text: data.error ?? 'Invalid coupon', ok: false }); return; }
       if (subtotal < data.minOrderAmount) {
-        setCouponMsg({ text: `Minimum order ₹${data.minOrderAmount} required for this coupon`, ok: false });
-        return;
+        setCouponMsg({ text: `Minimum order ₹${data.minOrderAmount} required for this coupon`, ok: false }); return;
       }
       setAppliedCoupon(data);
-      const saving = data.discountType === 'percentage'
-        ? `${data.discountValue}% off`
-        : `₹${data.discountValue} off`;
+      const saving = data.discountType === 'percentage' ? `${data.discountValue}% off` : `₹${data.discountValue} off`;
       setCouponMsg({ text: `Coupon applied! You save ${saving}`, ok: true });
     } finally {
       setApplying(false);
     }
   }
 
-  function removeCoupon() {
-    setAppliedCoupon(null);
-    setCouponInput('');
-    setCouponMsg(null);
-  }
+  function removeCoupon() { setAppliedCoupon(null); setCouponInput(''); setCouponMsg(null); }
 
   const set = (field: keyof Address) => (val: string) => setAddr((a) => ({ ...a, [field]: val }));
 
@@ -112,18 +102,72 @@ export default function CheckoutPage() {
     const missing = (Object.keys(EMPTY) as (keyof Address)[]).find((k) => !addr[k].trim());
     if (missing) { setError('Please fill in all required fields.'); return; }
 
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
+      // 1. Create order record in DB
       const res = await fetch('/api/orders', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: items.map((i) => ({ product: i.product, quantity: i.quantity })), shippingAddress: addr, paymentMethod: payment, couponCode: appliedCoupon?.code ?? null, discount }),
+        body:    JSON.stringify({
+          items:           items.map((i) => ({ product: i.product, quantity: i.quantity })),
+          shippingAddress: addr,
+          paymentMethod:   payment,
+          couponCode:      appliedCoupon?.code ?? null,
+          discount,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Unable to place order.');
-      clearCart();
-      router.push(`/orders/${data.order.id}`);
+      const order = data.order;
+
+      // 2. COD — done
+      if (payment === 'cod') {
+        clearCart();
+        router.push(`/orders/${order.id}`);
+        return;
+      }
+
+      // 3. Razorpay — get order ID from our server
+      const rzpRes = await fetch('/api/payments/create-order', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ amount: total, receipt: order.id }),
+      });
+      const rzpData = await rzpRes.json();
+      if (!rzpRes.ok) throw new Error(rzpData.error || 'Failed to initiate payment.');
+
+      // 4. Load Razorpay JS and open modal
+      await loadRazorpayScript();
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rzp = new (window as any).Razorpay({
+        key:      process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount:   rzpData.amount,
+        currency: rzpData.currency,
+        order_id: rzpData.razorpayOrderId,
+        name:     'Vani Enterprises',
+        description: `Order ${order.id}`,
+        prefill: { name: addr.name, email: addr.email, contact: addr.phone },
+        theme:   { color: '#44403c' },
+        handler: async (response: {
+          razorpay_order_id: string;
+          razorpay_payment_id: string;
+          razorpay_signature: string;
+        }) => {
+          const v = await fetch('/api/payments/verify', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({
+              razorpay_order_id:   response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature:  response.razorpay_signature,
+              orderId:             order.id,
+            }),
+          });
+          if ((await v.json()).success) { clearCart(); router.push(`/orders/${order.id}`); }
+        },
+      });
+      rzp.open();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
@@ -153,14 +197,14 @@ export default function CheckoutPage() {
             <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
               {/* Left */}
               <div className="space-y-6">
-                {/* Shipping details */}
+                {/* Shipping */}
                 <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-soft">
                   <h2 className="font-display text-lg font-bold text-stone-900 mb-5">Shipping Details</h2>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Full Name"     value={addr.name}         onChange={set('name')}         placeholder="Priya Sharma" />
-                    <Field label="Email Address" type="email" value={addr.email} onChange={set('email')} placeholder="priya@example.com" />
-                    <Field label="Phone Number"  type="tel"  value={addr.phone} onChange={set('phone')} placeholder="9999999999" />
-                    <Field label="Pincode"       value={addr.pincode}     onChange={set('pincode')}     placeholder="600001" />
+                    <Field label="Full Name"     value={addr.name}    onChange={set('name')}    placeholder="Priya Sharma" />
+                    <Field label="Email Address" type="email" value={addr.email}   onChange={set('email')}   placeholder="priya@example.com" />
+                    <Field label="Phone Number"  type="tel"  value={addr.phone}   onChange={set('phone')}   placeholder="9999999999" />
+                    <Field label="Pincode"       value={addr.pincode} onChange={set('pincode')} placeholder="600001" />
                   </div>
                   <div className="mt-4">
                     <Field label="Address Line 1" value={addr.addressLine1} onChange={set('addressLine1')} placeholder="Flat 4B, ABC Apartments, MG Road" />
@@ -192,13 +236,9 @@ export default function CheckoutPage() {
                       { id: 'cod',      label: 'Cash on Delivery', sub: 'Pay when your order arrives', icon: '💵' },
                     ] as const).map((opt) => (
                       <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setPayment(opt.id)}
+                        key={opt.id} type="button" onClick={() => setPayment(opt.id)}
                         className={`flex items-start gap-3 rounded-xl border-2 p-4 text-left transition-all ${
-                          payment === opt.id
-                            ? 'border-brand-600 bg-brand-50'
-                            : 'border-stone-200 hover:border-stone-300'
+                          payment === opt.id ? 'border-brand-600 bg-brand-50' : 'border-stone-200 hover:border-stone-300'
                         }`}
                       >
                         <span className="text-2xl">{opt.icon}</span>
@@ -229,17 +269,14 @@ export default function CheckoutPage() {
                     <>
                       <div className="flex gap-3">
                         <input
-                          type="text"
-                          value={couponInput}
+                          type="text" value={couponInput}
                           onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponMsg(null); }}
                           onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleApplyCoupon())}
-                          placeholder="Enter coupon code"
-                          aria-label="Coupon code"
+                          placeholder="Enter coupon code" aria-label="Coupon code"
                           className="flex-1 rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm font-mono uppercase tracking-wider text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white placeholder:normal-case placeholder:tracking-normal placeholder:font-sans"
                         />
                         <button
-                          type="button"
-                          onClick={handleApplyCoupon}
+                          type="button" onClick={handleApplyCoupon}
                           disabled={applying || !couponInput.trim()}
                           className="rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
                         >
@@ -272,13 +309,7 @@ export default function CheckoutPage() {
                       <div key={item.product.slug} className="flex items-center gap-3 text-sm">
                         <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-stone-100">
                           {item.product.images?.[0] && (
-                            <Image
-                              src={item.product.images[0]}
-                              alt={item.product.name}
-                              fill
-                              className="object-contain p-0.5"
-                              sizes="40px"
-                            />
+                            <Image src={item.product.images[0]} alt={item.product.name} fill className="object-contain p-0.5" sizes="40px" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -296,16 +327,14 @@ export default function CheckoutPage() {
 
                   <div className="space-y-2.5 text-sm">
                     <div className="flex justify-between text-stone-600">
-                      <span>Subtotal</span>
-                      <span>₹{subtotal.toLocaleString('en-IN')}</span>
+                      <span>Subtotal</span><span>₹{subtotal.toLocaleString('en-IN')}</span>
                     </div>
                     <div className="flex justify-between text-stone-600">
                       <span>Shipping</span>
                       {shipping === 0 ? <span className="font-semibold text-green-600">Free</span> : <span>₹{shipping}</span>}
                     </div>
                     <div className="flex justify-between text-stone-600">
-                      <span>Tax (5%)</span>
-                      <span>₹{tax.toLocaleString('en-IN')}</span>
+                      <span>Tax (5%)</span><span>₹{tax.toLocaleString('en-IN')}</span>
                     </div>
                     {discount > 0 && (
                       <div className="flex justify-between text-green-600 font-semibold">
@@ -331,11 +360,14 @@ export default function CheckoutPage() {
                   </div>
 
                   <button
-                    type="submit"
-                    disabled={loading}
+                    type="submit" disabled={loading}
                     className="mt-5 w-full rounded-full bg-stone-900 py-3.5 text-sm font-semibold text-white shadow-card transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {loading ? 'Placing Order…' : `Place Order · ₹${total.toLocaleString('en-IN')}`}
+                    {loading
+                      ? (payment === 'razorpay' ? 'Opening Payment…' : 'Placing Order…')
+                      : (payment === 'razorpay'
+                          ? `Pay ₹${total.toLocaleString('en-IN')} with Razorpay`
+                          : `Place Order · ₹${total.toLocaleString('en-IN')}`)}
                   </button>
 
                   <p className="mt-3 text-center text-xs text-stone-400">

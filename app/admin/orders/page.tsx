@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { orders } from '@/lib/orderStorage';
-import { STATUS_LABELS, type OrderStatus } from '@/lib/orders';
+import { STATUS_LABELS, type Order, type OrderStatus } from '@/lib/orders';
 
 const STATUS_COLORS: Record<string, string> = {
   placed:           'bg-blue-100 text-blue-700',
@@ -28,9 +27,16 @@ const STATUS_OPTIONS: OrderStatus[] = [
 ];
 
 export default function AdminOrders() {
+  const [orders, setOrders] = useState<Order[]>([]);
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
   const [search, setSearch] = useState('');
   const [sortDesc, setSortDesc] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/orders')
+      .then(r => r.json())
+      .then(data => setOrders(Array.isArray(data) ? data : []));
+  }, []);
 
   const filtered = orders
     .filter((o) => {
