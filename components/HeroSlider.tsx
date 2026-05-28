@@ -148,8 +148,7 @@ export function HeroSlider() {
   } as React.CSSProperties;
 
   return (
-    // eslint-disable-next-line react/forbid-component-props
-    <    <section style={{ background: '#111', padding: '2rem 0' }}>
+    <section
       className="hero-slider relative overflow-hidden transition-all duration-700"
       style={cssVars}
       onMouseEnter={() => setPaused(true)}
