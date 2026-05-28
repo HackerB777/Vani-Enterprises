@@ -1,17 +1,30 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-/* Public client — safe to use in both browser and server route handlers. */
+const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+
+// Resolve anon/public key — supports multiple naming conventions
+function anonKey(): string {
+  return (
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_PUBLIC_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    ''
+  );
+}
+
+// Resolve service-role key for server-side admin client
+function serviceKey(): string {
+  return (
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    anonKey()
+  );
+}
+
+/* ── Public client (browser + server components) ─────────── */
 let _client: SupabaseClient | null = null;
 
 function getClient(): SupabaseClient {
-  if (!_client) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    // Use || so empty-string env vars fall through to the next option
-    const key =
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
-    _client = createClient(url, key);
-  }
+  if (!_client) _client = createClient(URL, anonKey());
   return _client;
 }
 
@@ -21,18 +34,12 @@ export const supabase = new Proxy({} as SupabaseClient, {
   },
 });
 
-/* Admin client — uses the service role key, server-side only.
-   Bypasses RLS; never expose this key to the browser. */
+/* ── Admin client (API routes only — bypasses RLS) ────────── */
 let _admin: SupabaseClient | null = null;
 
 export function getSupabaseAdmin(): SupabaseClient {
   if (!_admin) {
-    // Use || so empty-string env vars (e.g. SUPABASE_SERVICE_ROLE_KEY=) fall through
-    const key =
-      process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
-    _admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key, {
+    _admin = createClient(URL, serviceKey(), {
       auth: { persistSession: false, autoRefreshToken: false },
     });
   }
