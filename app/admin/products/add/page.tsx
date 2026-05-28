@@ -16,10 +16,17 @@ interface ImagePreview {
 
 /* Upload a single file directly to Cloudinary (browser → CDN, not through Vercel) */
 async function uploadImage(file: File): Promise<string> {
+  // Step 1: get signed credentials from our API
   const sigRes = await fetch('/api/upload/sign');
-  if (!sigRes.ok) throw new Error('Failed to get upload authorisation');
+  if (sigRes.status === 401) throw new Error('STEP1_UNAUTH: Not signed in as admin. Log out and log back in, then retry.');
+  if (!sigRes.ok) {
+    const d = await sigRes.json().catch(() => ({}));
+    throw new Error(`STEP1_SIGN: Could not get upload credentials — ${d.error ?? sigRes.status}`);
+  }
   const { signature, timestamp, folder, apiKey, cloudName } = await sigRes.json();
+  if (!apiKey || !cloudName) throw new Error('STEP1_ENV: Cloudinary env vars missing. Add CLOUDINARY_API_KEY, CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_SECRET to Vercel → Settings → Environment Variables, then redeploy.');
 
+  // Step 2: upload directly to Cloudinary
   const fd = new FormData();
   fd.append('file', file);
   fd.append('signature', signature);
@@ -29,7 +36,7 @@ async function uploadImage(file: File): Promise<string> {
 
   const res  = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: 'POST', body: fd });
   const data = await res.json();
-  if (data.error) throw new Error(data.error.message ?? 'Upload failed');
+  if (data.error) throw new Error(`STEP2_CLOUD: Cloudinary rejected upload — "${data.error.message}". Check your Cloudinary credentials in Vercel env vars.`);
   return data.secure_url as string;
 }
 
@@ -118,18 +125,19 @@ export default function AddProduct() {
     setError('');
     setSaving(true);
     try {
-      // 1. Upload images to Cloudinary
+      // Step 1+2: Upload images to Cloudinary
       const imageUrls: string[] = [];
-      const primaryIndex = images.findIndex((img) => img.isPrimary);
-      const ordered = primaryIndex > 0
-        ? [images[primaryIndex], ...images.filter((_, i) => i !== primaryIndex)]
-        : images;
-
-      for (const img of ordered) {
-        imageUrls.push(await uploadImage(img.file));
+      if (images.length > 0) {
+        const primaryIndex = images.findIndex((img) => img.isPrimary);
+        const ordered = primaryIndex > 0
+          ? [images[primaryIndex], ...images.filter((_, i) => i !== primaryIndex)]
+          : images;
+        for (const img of ordered) {
+          imageUrls.push(await uploadImage(img.file));
+        }
       }
 
-      // 2. Save to Supabase
+      // Step 3: Save product to Supabase
       const res = await fetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -150,12 +158,14 @@ export default function AddProduct() {
           isOnSale:      form.isOnSale,
         }),
       });
+
+      if (res.status === 401) throw new Error('STEP3_UNAUTH: Not signed in as admin. Log out and log back in.');
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Failed to save product');
+      if (!res.ok) throw new Error(`STEP3_DB: Database error — ${data.error ?? res.status}. Check Supabase env vars in Vercel.`);
 
       router.push('/admin/products');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save product. Try again.');
+      setError(err instanceof Error ? err.message : 'Unknown error. Check browser console.');
     } finally {
       setSaving(false);
     }
