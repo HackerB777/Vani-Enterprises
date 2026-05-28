@@ -85,7 +85,7 @@ export function Navbar() {
 
       {/* ── Main header ── */}
       <header className={`sticky top-0 z-50 w-full bg-stone-900 transition-shadow duration-300 ${scrolled ? 'shadow-[0_2px_12px_rgba(0,0,0,0.35)]' : ''}`}>
-        <div className="flex w-full items-center gap-2 py-3 lg:gap-4 lg:py-4">
+        <div className="flex w-full items-center gap-2 px-3 py-3 sm:px-4 lg:container lg:gap-4 lg:py-4">
 
           {/* Logo */}
           <Link href="/" aria-label="Vani Enterprises – Home" className="flex-shrink-0">
@@ -108,7 +108,7 @@ export function Navbar() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleSearchKey}
-              placeholder="Search for products, brands and categories…"
+              placeholder="Search products…"
               className="flex-1 min-w-0 px-4 py-2.5 text-sm text-stone-800 placeholder-stone-400 outline-none bg-transparent"
             />
             <button
@@ -217,7 +217,7 @@ export function Navbar() {
             {/* Mobile hamburger */}
             <button type="button" ref={hamburgerRef} onClick={() => setMenuOpen(!menuOpen)}
               aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-              aria-expanded={menuOpen ? 'true' : 'false'}
+              aria-expanded={menuOpen}
               className="rounded-lg p-3 text-stone-300 transition hover:bg-stone-800 lg:hidden"
             >
               {menuOpen ? (
@@ -272,7 +272,7 @@ export function Navbar() {
 
             <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5">
               {/* Mobile search */}
-              <div className="hidden min-w-0 flex-1 overflow-hidden rounded-xl bg-white shadow-md sm:flex">
+              <div className="flex min-w-0 flex-1 overflow-hidden rounded-xl bg-white shadow-md">
                 <input
                   type="search"
                   value={mobileQuery}

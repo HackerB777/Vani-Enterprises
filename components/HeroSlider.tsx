@@ -133,7 +133,7 @@ export function HeroSlider() {
   return (
     <section
       className="hero-slider relative overflow-hidden transition-all duration-700"
-      style={cssVars}
+      style={cssVars /* CSS custom properties for dynamic slide colours — cannot be static */}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -193,7 +193,7 @@ export function HeroSlider() {
               {/* Search bar */}
               <form
                 onSubmit={handleSearch}
-                className="mt-7 flex w-full flex-col overflow-hidden rounded-2xl sm:flex-row"
+                className="mt-7 flex w-full flex-col overflow-hidden rounded-2xl bg-stone-900 border border-stone-700 sm:flex-row"
               >
                 <input
                   type="text"
@@ -244,7 +244,7 @@ export function HeroSlider() {
               </div>
 
               {/* Stats — admin KPI mini-cards */}
-              <div className="mt-7 grid-cols-2 lg:grid-cols-4 gap-3 border-t border-stone-800 pt-6">
+              <div className="mt-7 grid grid-cols-2 sm:grid-cols-4 gap-3 border-t border-stone-800 pt-6">
                 {STATS.map((stat) => (
                   <div key={stat.label} className="rounded-xl bg-stone-900 border border-stone-800 p-3 text-center">
                     <p className="font-display text-lg font-extrabold text-white sm:text-xl">{stat.value}</p>
