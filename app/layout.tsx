@@ -3,6 +3,7 @@ import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { StoreShell } from '@/components/StoreShell';
 import { Providers } from '@/components/Providers';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -37,6 +38,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Providers session={session}>
           <StoreShell>{children}</StoreShell>
         </Providers>
+        <SpeedInsights />
       </body>
     </html>
   );
