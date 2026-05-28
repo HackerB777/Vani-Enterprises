@@ -28,7 +28,7 @@ export default async function OffersPage() {
               <span className="inline-flex rounded-full bg-white/20 px-3 py-1 text-xs font-bold uppercase tracking-widest text-white">
                 Limited Time
               </span>
-              <h1 className="mt-3 font-display text-4xl font-bold text-white sm:text-5xl">
+              <h1 className="mt-3 font-display text-3xl font-bold text-white sm:text-4xl md:text-5xl">
                 {maxSaving > 0 ? `Up to ${maxSaving}% Off` : 'Sale On Now'}
               </h1>
               <p className="mt-3 text-lg text-brand-200">
@@ -37,7 +37,7 @@ export default async function OffersPage() {
             </div>
             <div className="rounded-2xl border border-white/20 bg-white/10 p-5 text-center backdrop-blur-sm">
               <p className="text-xs font-bold uppercase tracking-widest text-brand-200">Sale Items</p>
-              <p className="font-display text-5xl font-bold text-white">{products.length}</p>
+              <p className="font-display text-4xl sm:text-5xl font-bold text-white">{products.length}</p>
               <p className="text-sm text-brand-300">Products on sale</p>
             </div>
           </div>

@@ -94,7 +94,7 @@ export default async function HomePage() {
   const homeItems   = homeItemsData   ?? [];
 
   return (
-    <>
+    <div className="w-full overflow-hidden">
       {/* ── Hero ── */}
       <HeroSlider />
 
@@ -130,7 +130,7 @@ export default async function HomePage() {
                 href={`/shop?category=${cat.slug}`}
                 className="flex flex-col items-center gap-2 snap-start shrink-0 w-20 group"
               >
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-stone-50 border border-stone-100 text-3xl transition-all group-hover:bg-brand-50 group-hover:border-brand-200 group-hover:scale-105">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-stone-50 border border-stone-100 text-2xl sm:text-3xl transition-all group-hover:bg-brand-50 group-hover:border-brand-200 group-hover:scale-105">
                   {CAT_ICONS[cat.slug] ?? '🛍️'}
                 </div>
                 <span className="text-center text-[10px] font-semibold text-stone-600 leading-tight line-clamp-2">
@@ -177,7 +177,7 @@ export default async function HomePage() {
       {/* ── Promo banner ── */}
       <section className="py-4 bg-stone-50 border-b border-stone-100">
         <div className="container">
-          <div className="rounded-2xl overflow-hidden bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-5">
+          <div className="rounded-2xl overflow-hidden bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 px-4 sm:px-8 py-6 sm:py-8 flex flex-col sm:flex-row items-center justify-between gap-5">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-white/70 mb-1">First Order Offer</p>
               <h2 className="font-display text-2xl font-bold text-white">
@@ -270,7 +270,7 @@ export default async function HomePage() {
                 href={`/shop?category=${cat.slug}`}
                 className="group flex flex-col items-center gap-2 rounded-xl bg-white border border-stone-100 p-4 text-center shadow-sm transition hover:shadow-md hover:-translate-y-0.5"
               >
-                <span className="text-3xl">{CAT_ICONS[cat.slug] ?? '🛍️'}</span>
+                <span className="text-2xl sm:text-3xl">{CAT_ICONS[cat.slug] ?? '🛍️'}</span>
                 <span className="text-xs font-semibold text-stone-700 leading-tight line-clamp-2">
                   {cat.name}
                 </span>
@@ -305,7 +305,7 @@ export default async function HomePage() {
                 href={`/shop?category=${cat.slug}`}
                 className="group flex items-center gap-3 rounded-xl border border-stone-100 bg-stone-50 p-4 transition hover:border-brand-200 hover:bg-brand-50 hover:shadow-sm"
               >
-                <span className="text-2xl">{CAT_ICONS[cat.slug] ?? '🛍️'}</span>
+                <span className="text-xl sm:text-2xl">{CAT_ICONS[cat.slug] ?? '🛍️'}</span>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-stone-800 group-hover:text-brand-700 leading-tight truncate">
                     {cat.name}
@@ -331,7 +331,7 @@ export default async function HomePage() {
       <section className="bg-white py-12">
         <div className="container flex flex-col items-center text-center gap-4">
           <p className="text-xs font-bold uppercase tracking-widest text-brand-600">Our Story</p>
-          <h2 className="font-display text-2xl font-bold text-stone-900 max-w-lg">
+          <h2 className="font-display text-xl sm:text-2xl lg:text-3xl font-bold text-stone-900 max-w-lg">
             Rooted in Chennai, delivering quality across India since 2014
           </h2>
           <p className="text-sm text-stone-500 max-w-xl leading-relaxed">
@@ -353,6 +353,6 @@ export default async function HomePage() {
           </Link>
         </div>
       </section>
-    </>
+    </div>
   );
 }

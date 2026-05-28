@@ -3,12 +3,13 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase';
 
-function getUserId(session: Awaited<ReturnType<typeof getServerSession>>): string | null {
-  return (session?.user as { id?: string })?.id ?? null;
+function getUserId(session: { user?: { id?: string } } | null): string | null {
+  return session?.user?.id ?? null;
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     const userId = getUserId(session);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -18,14 +19,12 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     const supabase = getSupabaseAdmin();
 
-    // Ensure address belongs to this user
     const { data: existing } = await supabase
-      .from('addresses').select('userId').eq('id', params.id).single();
+      .from('addresses').select('userId').eq('id', id).single();
     if (!existing || existing.userId !== userId) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
-    // Clear existing default if promoting this one
     if (isDefault) {
       await supabase.from('addresses').update({ isDefault: false }).eq('userId', userId);
     }
@@ -33,7 +32,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const { data, error } = await supabase
       .from('addresses')
       .update({ label, name, phone, addressLine1, city, state, pincode, isDefault: !!isDefault })
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
@@ -46,22 +45,22 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     const userId = getUserId(session);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const supabase = getSupabaseAdmin();
 
-    // Ensure address belongs to this user before deleting
     const { data: existing } = await supabase
-      .from('addresses').select('userId').eq('id', params.id).single();
+      .from('addresses').select('userId').eq('id', id).single();
     if (!existing || existing.userId !== userId) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
-    const { error } = await supabase.from('addresses').delete().eq('id', params.id);
+    const { error } = await supabase.from('addresses').delete().eq('id', id);
     if (error) throw error;
     return new NextResponse(null, { status: 204 });
   } catch (err: unknown) {

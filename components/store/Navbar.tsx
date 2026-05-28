@@ -85,7 +85,7 @@ export function Navbar() {
 
       {/* ── Main header ── */}
       <header className={`sticky top-0 z-50 w-full bg-stone-900 transition-shadow duration-300 ${scrolled ? 'shadow-[0_2px_12px_rgba(0,0,0,0.35)]' : ''}`}>
-        <div className="container flex items-center gap-4 py-3">
+        <div className="flex w-full items-center gap-2 py-3 lg:gap-4 lg:py-4">
 
           {/* Logo */}
           <Link href="/" aria-label="Vani Enterprises – Home" className="flex-shrink-0">
@@ -272,7 +272,7 @@ export function Navbar() {
 
             <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5">
               {/* Mobile search */}
-              <div className="flex overflow-hidden rounded-xl border border-stone-200 bg-stone-50">
+              <div className="hidden min-w-0 flex-1 overflow-hidden rounded-xl bg-white shadow-md sm:flex">
                 <input
                   type="search"
                   value={mobileQuery}

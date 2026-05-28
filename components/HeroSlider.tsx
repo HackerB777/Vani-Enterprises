@@ -149,7 +149,7 @@ export function HeroSlider() {
         <div className="hero-dot-pattern absolute inset-0 opacity-[0.06]" />
       </div>
 
-      <div className="container relative z-10 py-16 lg:py-24">
+      <div className="relative z-10 mx-auto w-full max-w-7xl overflow-hidden px-4 py-10 sm:px-6 md:py-14 lg:px-8 lg:py-24">
         <div className="grid items-center gap-10 lg:grid-cols-2">
 
           {/* ── Left content — dark admin-style card ── */}
@@ -163,7 +163,7 @@ export function HeroSlider() {
               </span>
 
               {/* Heading */}
-              <h1 className="mt-5 font-display text-4xl font-extrabold leading-[1.1] text-white sm:text-5xl lg:text-6xl">
+              <h1 className="mt-5 break-words font-display text-3xl font-extrabold leading-tight text-white sm:text-4xl md:text-5xl lg:text-6xl">
                 {s.title}{' '}
                 <span className="relative inline-block">
                   <span className="hero-accent">{s.highlight}</span>
@@ -193,7 +193,7 @@ export function HeroSlider() {
               {/* Search bar */}
               <form
                 onSubmit={handleSearch}
-                className="mt-7 flex w-full overflow-hidden rounded-2xl bg-stone-900 border border-stone-700 shadow-lg"
+                className="mt-7 flex w-full flex-col overflow-hidden rounded-2xl sm:flex-row"
               >
                 <input
                   type="text"
@@ -244,7 +244,7 @@ export function HeroSlider() {
               </div>
 
               {/* Stats — admin KPI mini-cards */}
-              <div className="mt-7 grid grid-cols-4 gap-3 border-t border-stone-800 pt-6">
+              <div className="mt-7 grid-cols-2 lg:grid-cols-4 gap-3 border-t border-stone-800 pt-6">
                 {STATS.map((stat) => (
                   <div key={stat.label} className="rounded-xl bg-stone-900 border border-stone-800 p-3 text-center">
                     <p className="font-display text-lg font-extrabold text-white sm:text-xl">{stat.value}</p>
@@ -268,7 +268,7 @@ export function HeroSlider() {
               {/* Centre card */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="flex flex-col items-center gap-3 rounded-3xl bg-white/15 backdrop-blur-md border border-white/20 px-10 py-8 shadow-2xl">
-                  <span className="text-6xl drop-shadow-lg">{s.icon}</span>
+                  <span className="text-4xl sm:text-5xl lg:text-6xl drop-shadow-lg">{s.icon}</span>
                   <p className="text-lg font-bold text-white text-center leading-tight">{s.highlight}</p>
                   <p className="text-xs text-white/60 text-center">{s.tag}</p>
                 </div>

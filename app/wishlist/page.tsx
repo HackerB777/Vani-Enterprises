@@ -15,7 +15,7 @@ export default function WishlistPage() {
       <div className="border-b border-stone-200 bg-white">
         <div className="container py-8">
           <p className="text-xs font-bold uppercase tracking-widest text-brand-600">Saved for later</p>
-          <h1 className="mt-1 font-display text-3xl font-bold text-stone-900">My Wishlist</h1>
+          <h1 className="mt-1 font-display text-2xl sm:text-3xl font-bold text-stone-900">My Wishlist</h1>
           {items.length > 0 && (
             <p className="mt-1 text-sm text-stone-500">{items.length} item{items.length !== 1 ? 's' : ''} saved</p>
           )}

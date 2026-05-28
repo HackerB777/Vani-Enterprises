@@ -3,8 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase';
 
-function getUserId(session: Awaited<ReturnType<typeof getServerSession>>): string | null {
-  return (session?.user as { id?: string })?.id ?? null;
+function getUserId(session: { user?: { id?: string } } | null): string | null {
+  return session?.user?.id ?? null;
 }
 
 export async function GET() {

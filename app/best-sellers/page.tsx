@@ -13,7 +13,7 @@ export default async function BestSellersPage() {
       <div className="border-b border-stone-200 bg-white">
         <div className="container py-8">
           <p className="text-xs font-bold uppercase tracking-widest text-brand-600">Customer favourites</p>
-          <h1 className="mt-1 font-display text-3xl font-bold text-stone-900">Best Sellers</h1>
+          <h1 className="mt-1 font-display text-2xl sm:text-3xl font-bold text-stone-900">Best Sellers</h1>
           <p className="mt-2 text-stone-500">Our most loved products — chosen by thousands of happy customers.</p>
           <nav className="mt-3 flex items-center gap-2 text-xs text-stone-500">
             <Link href="/" className="hover:text-stone-900 transition-colors">Home</Link>

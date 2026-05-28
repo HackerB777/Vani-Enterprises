@@ -42,7 +42,7 @@ export default function ContactPage() {
       <div className="border-b border-stone-200 bg-white">
         <div className="container py-8">
           <p className="text-xs font-bold uppercase tracking-widest text-brand-600">We&apos;re here to help</p>
-          <h1 className="mt-1 font-display text-3xl font-bold text-stone-900">Contact Us</h1>
+          <h1 className="mt-1 font-display text-2xl sm:text-3xl font-bold text-stone-900">Contact Us</h1>
           <p className="mt-2 text-stone-500">Questions, feedback or bulk orders — we&apos;d love to hear from you.</p>
         </div>
       </div>

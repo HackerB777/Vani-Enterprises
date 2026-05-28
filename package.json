@@ -13,11 +13,11 @@
     "@supabase/supabase-js": "^2.106.2",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.10.0",
-    "next": "14.2.29",
+    "next": "^16.2.6",
     "next-auth": "^4.24.14",
     "razorpay": "^2.9.6",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
     "zustand": "^5.0.13"
   },
   "devDependencies": {

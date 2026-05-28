@@ -27,7 +27,7 @@ export default function AboutPage() {
         <div className="grid items-center gap-10 lg:grid-cols-2">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-brand-600">Who We Are</p>
-            <h2 className="mt-2 font-display text-3xl font-bold text-stone-900">
+            <h2 className="mt-2 font-display text-2xl sm:text-3xl lg:text-4xl font-bold text-stone-900">
               More than a store — a celebration of Indian craft
             </h2>
             <p className="mt-4 leading-relaxed text-stone-600">
@@ -50,7 +50,7 @@ export default function AboutPage() {
               { value: '20K+', label: 'Happy Customers' },
             ].map((stat) => (
               <div key={stat.label} className="rounded-2xl border border-stone-200 bg-white p-6 text-center shadow-soft">
-                <p className="font-display text-4xl font-bold text-brand-700">{stat.value}</p>
+                <p className="font-display text-3xl sm:text-4xl font-bold text-brand-700">{stat.value}</p>
                 <p className="mt-2 text-sm text-stone-600">{stat.label}</p>
               </div>
             ))}
@@ -61,7 +61,7 @@ export default function AboutPage() {
         <div>
           <div className="mb-10 text-center">
             <p className="text-xs font-bold uppercase tracking-widest text-brand-600">What We Stand For</p>
-            <h2 className="mt-2 font-display text-3xl font-bold text-stone-900">Our Values</h2>
+            <h2 className="mt-2 font-display text-2xl sm:text-3xl font-bold text-stone-900">Our Values</h2>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[
@@ -82,8 +82,8 @@ export default function AboutPage() {
         </div>
 
         {/* CTA */}
-        <div className="rounded-3xl bg-gradient-to-r from-brand-700 to-brand-900 px-8 py-12 text-center text-white">
-          <h2 className="font-display text-3xl font-bold">Ready to shop with purpose?</h2>
+        <div className="rounded-3xl bg-gradient-to-r from-brand-700 to-brand-900 px-4 sm:px-8 py-8 sm:py-12 text-center text-white">
+          <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold">Ready to shop with purpose?</h2>
           <p className="mt-3 text-brand-200">
             Every purchase supports artisan livelihoods and India&apos;s craft heritage.
           </p>
