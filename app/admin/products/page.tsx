@@ -18,7 +18,9 @@ export default function AdminProducts() {
     try {
       const res  = await fetch('/api/products');
       const data = await res.json();
-      setAllProducts(data);
+      setAllProducts(Array.isArray(data) ? data : []);
+    } catch {
+      setAllProducts([]);
     } finally {
       setLoading(false);
     }
@@ -44,8 +46,15 @@ export default function AdminProducts() {
     if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
     setDeleting(slug);
     try {
-      await fetch(`/api/products/${slug}`, { method: 'DELETE' });
+      const res = await fetch(`/api/products/${slug}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error ?? `Delete failed (${res.status}). Make sure you are logged in as admin.`);
+        return;
+      }
       setAllProducts((prev) => prev.filter((p) => p.slug !== slug));
+    } catch {
+      alert('Network error — could not delete product.');
     } finally {
       setDeleting(null);
     }
