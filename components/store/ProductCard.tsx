@@ -21,6 +21,14 @@ const CAT_ICONS: Record<string, string> = {
   gifts:       '🎁',
   bath:        '🕯️',
   garden:      '🌿',
+  furniture:   '🪑',
+  bedding:     '🛏️',
+  textiles:    '🧵',
+  toys:        '🧸',
+  sports:      '⚽',
+  beauty:      '💄',
+  jewellery:   '💍',
+  footwear:    '👟',
 };
 
 interface Props {

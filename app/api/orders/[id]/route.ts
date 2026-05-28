@@ -3,10 +3,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import type { OrderStatus } from '@/lib/orders';
 import { getSupabaseAdmin } from '@/lib/supabase';
-const supabase = getSupabaseAdmin();
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const supabase = getSupabaseAdmin();
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: 'Sign in to view this order' }, { status: 401 });
@@ -16,7 +16,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const { data, error } = await supabase.from('orders').select('*').eq('id', id).single();
     if (error || !data) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
 
-    // Non-admin users can only view their own orders
     const isAdmin = (session.user as { role?: string }).role === 'admin';
     const userId  = (session.user as { id?: string }).id;
     if (!isAdmin && data.userId !== userId) {
@@ -31,6 +30,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const supabase = getSupabaseAdmin();
     const session = await getServerSession(authOptions);
     if (!session || (session.user as { role?: string }).role !== 'admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });

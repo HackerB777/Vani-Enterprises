@@ -1,8 +1,9 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+function getUrl(): string {
+  return process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+}
 
-// Resolve anon/public key — supports multiple naming conventions
 function anonKey(): string {
   return (
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
@@ -12,19 +13,15 @@ function anonKey(): string {
   );
 }
 
-// Resolve service-role key for server-side admin client
 function serviceKey(): string {
-  return (
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    anonKey()
-  );
+  return process.env.SUPABASE_SERVICE_ROLE_KEY || anonKey();
 }
 
 /* ── Public client (browser + server components) ─────────── */
 let _client: SupabaseClient | null = null;
 
 function getClient(): SupabaseClient {
-  if (!_client) _client = createClient(URL, anonKey());
+  if (!_client) _client = createClient(getUrl(), anonKey());
   return _client;
 }
 
@@ -38,8 +35,10 @@ export const supabase = new Proxy({} as SupabaseClient, {
 let _admin: SupabaseClient | null = null;
 
 export function getSupabaseAdmin(): SupabaseClient {
-  if (!_admin) {
-    _admin = createClient(URL, serviceKey(), {
+  // Re-create if URL changes (e.g. env var not set during cold start)
+  const url = getUrl();
+  if (!_admin || !url) {
+    _admin = createClient(url, serviceKey(), {
       auth: { persistSession: false, autoRefreshToken: false },
     });
   }

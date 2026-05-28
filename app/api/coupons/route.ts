@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase';
-const supabase = getSupabaseAdmin();
 
 function isAdmin(session: { user?: { role?: string } } | null) {
   return session?.user?.role === 'admin';
 }
 
 export async function GET() {
+  const supabase = getSupabaseAdmin();
   const session = await getServerSession(authOptions);
   if (!isAdmin(session)) return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
 
@@ -21,6 +21,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const supabase = getSupabaseAdmin();
   const session = await getServerSession(authOptions);
   if (!isAdmin(session)) return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
 

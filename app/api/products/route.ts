@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase';
-const supabase = getSupabaseAdmin();
 
 export async function GET(request: NextRequest) {
+  const supabase = getSupabaseAdmin();
   try {
     const { searchParams } = new URL(request.url);
     const category     = searchParams.get('category');
@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const supabase = getSupabaseAdmin();
   try {
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== 'admin') {

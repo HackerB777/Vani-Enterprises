@@ -38,6 +38,7 @@ export const categories: Category[] = [
   { slug: 'gifts',       name: 'Gifts & Hampers',      description: 'Curated gifts for every occasion',     gradient: 'from-pink-100 to-rose-100',      count: 30  },
   { slug: 'bath',        name: 'Bath & Wellness',      description: 'Soaps, candles & self-care',           gradient: 'from-violet-100 to-purple-100',  count: 25  },
   { slug: 'garden',      name: 'Garden & Outdoors',    description: 'Planters, tools & outdoor decor',      gradient: 'from-green-100 to-emerald-100',  count: 20  },
+  { slug: 'furniture',   name: 'Furniture',            description: 'Sofas, beds, wardrobes & dining sets',  gradient: 'from-amber-100 to-orange-100',   count: 35  },
 ];
 
 export const categoryGradients: Record<string, string> = {
@@ -53,6 +54,7 @@ export const categoryGradients: Record<string, string> = {
   gifts:       'from-pink-50    via-rose-50    to-orange-50',
   bath:        'from-violet-50  via-purple-50  to-pink-50',
   garden:      'from-green-50   via-emerald-50 to-teal-50',
+  furniture:   'from-amber-50   via-orange-50  to-yellow-50',
 };
 
 // ─── ELECTRONICS ────────────────────────────────────────────────────────────
