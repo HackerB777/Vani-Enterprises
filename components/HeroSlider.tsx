@@ -90,6 +90,23 @@ const slides = [
     icon:  '🏺',
     tags:  ['Brass Diyas', 'Puja Sets', 'Gift Hampers', 'Candles'],
   },
+  {
+    tag:       'Furniture & Living',
+    title:     'Elegant',
+    highlight: 'Furniture',
+    tail:      'For Every Room',
+    sub:       'Sofas, beds, wardrobes, dining sets & office furniture — quality wood & fabric at great prices.',
+    cta:       { label: 'Shop Furniture', href: '/shop?category=furniture' },
+    cta2:      { label: 'Best Sellers',   href: '/best-sellers' },
+    // Warm amber-to-brown
+    from:  '#92400e',
+    via:   '#b45309',
+    to:    '#d97706',
+    chip:  'bg-white/20 text-white',
+    accent:'#fef3c7',
+    icon:  '🪑',
+    tags:  ['Sofas', 'Beds', 'Wardrobes', 'Dining Sets'],
+  },
 ];
 
 const STATS = [
@@ -131,9 +148,10 @@ export function HeroSlider() {
   } as React.CSSProperties;
 
   return (
-    <section
+    // eslint-disable-next-line react/forbid-component-props
+    <    <section style={{ background: '#111', padding: '2rem 0' }}>
       className="hero-slider relative overflow-hidden transition-all duration-700"
-      style={cssVars /* CSS custom properties for dynamic slide colours — cannot be static */}
+      style={cssVars}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >

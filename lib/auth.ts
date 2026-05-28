@@ -15,35 +15,37 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials.password) return null;
 
         const email = credentials.email.toLowerCase().trim();
-        const supabase = getSupabaseAdmin();
 
-        let { data: user } = await supabase
-          .from('users')
-          .select('id, name, email, password, role')
-          .eq('email', email)
-          .single();
-
-        // Auto-seed admin on first login
-        if (
-          !user &&
-          process.env.ADMIN_EMAIL?.toLowerCase() === email &&
-          process.env.ADMIN_PASSWORD
-        ) {
-          const hashed = await bcrypt.hash(process.env.ADMIN_PASSWORD, 12);
-          const { data: created } = await supabase
-            .from('users')
-            .insert({ name: 'Admin', email, password: hashed, role: 'admin' })
-            .select('id, name, email, password, role')
-            .single();
-          user = created;
+        // ── Admin: verify directly against env vars (no DB needed) ──
+        const adminEmail    = process.env.ADMIN_EMAIL?.toLowerCase().trim();
+        const adminPassword = process.env.ADMIN_PASSWORD;
+        if (adminEmail && adminPassword && email === adminEmail) {
+          // Support both plain-text and bcrypt-hashed ADMIN_PASSWORD
+          const valid = adminPassword.startsWith('$2')
+            ? await bcrypt.compare(credentials.password, adminPassword)
+            : credentials.password === adminPassword;
+          if (!valid) return null;
+          return { id: 'admin', name: 'Admin', email, role: 'admin' };
         }
 
-        if (!user) return null;
+        // ── Regular users: look up in Supabase ──
+        try {
+          const supabase = getSupabaseAdmin();
+          const { data: user } = await supabase
+            .from('users')
+            .select('id, name, email, password, role')
+            .eq('email', email)
+            .single();
 
-        const valid = await bcrypt.compare(credentials.password, user.password);
-        if (!valid) return null;
+          if (!user) return null;
 
-        return { id: user.id, name: user.name, email: user.email, role: user.role };
+          const valid = await bcrypt.compare(credentials.password, user.password);
+          if (!valid) return null;
+
+          return { id: user.id, name: user.name, email: user.email, role: user.role };
+        } catch {
+          return null;
+        }
       },
     }),
   ],

@@ -147,6 +147,41 @@ progress.chart-bar::-moz-progress-bar      { background: #c2410c; border-radius:
   .no-scrollbar { scrollbar-width: none; }             /* Firefox 64+, Chrome 121+ */
 }
 
+/* ── Missing keyframes ── */
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Hero animations ── */
+@keyframes heroText {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-hero-text {
+  animation: heroText 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-10px); }
+}
+.animate-float {
+  animation: float 3.5s ease-in-out infinite;
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spinSlow 18s linear infinite;
+}
+
 /* Float animation delays for hero badges */
 .delay-0   { animation-delay: 0s; }
 .delay-800 { animation-delay: 0.8s; }

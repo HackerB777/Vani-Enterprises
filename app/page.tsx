@@ -180,7 +180,7 @@ export default async function HomePage() {
           <div className="rounded-2xl overflow-hidden bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 px-4 sm:px-8 py-6 sm:py-8 flex flex-col sm:flex-row items-center justify-between gap-5">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-white/70 mb-1">First Order Offer</p>
-              <h2 className="font-display text-2xl font-bold text-white">
+              <h2 className="font-display text-xl sm:text-2xl font-bold text-white">
                 Use <span className="rounded-lg bg-white/20 px-2 py-0.5 font-mono text-yellow-300">VANI10</span> for 10% off
               </h2>
               <p className="mt-1 text-sm text-white/70">On orders above ₹999</p>
@@ -340,7 +340,7 @@ export default async function HomePage() {
           <div className="flex items-center gap-10 mt-2">
             {[{ v: '10+', l: 'Years' }, { v: '500+', l: 'Products' }, { v: '10K+', l: 'Happy Homes' }].map(({ v, l }) => (
               <div key={l} className="text-center">
-                <p className="font-display text-2xl font-bold text-brand-600">{v}</p>
+                <p className="font-display text-xl sm:text-2xl font-bold text-brand-600">{v}</p>
                 <p className="text-xs text-stone-500">{l}</p>
               </div>
             ))}
