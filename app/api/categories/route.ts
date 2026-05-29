@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { categories as defaultCategories } from '@/lib/products';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const supabase = getSupabaseAdmin();
