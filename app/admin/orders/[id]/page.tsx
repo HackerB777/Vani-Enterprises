@@ -135,7 +135,7 @@ export default function AdminOrderDetail() {
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold uppercase tracking-widest text-stone-400">Order Detail</p>
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="font-display text-2xl font-bold text-stone-800 font-mono">{order.id}</h2>
+            <h2 className="font-mono text-2xl font-bold text-stone-800">{order.id}</h2>
             <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLORS[order.status] ?? ''}`}>
               {STATUS_LABELS[order.status]}
             </span>
@@ -176,7 +176,8 @@ export default function AdminOrderDetail() {
             <div className="absolute top-3.5 left-0 right-0 h-0.5 bg-stone-200" />
             <div
               className="absolute top-3.5 left-0 h-0.5 bg-brand-500 transition-all duration-700"
-              style={{ width: `${(currentStep / (STATUS_FLOW.length - 1)) * 100}%` }}
+              // eslint-disable-next-line react/forbid-dom-props
+              style={{ width: `${Math.round((currentStep / (STATUS_FLOW.length - 1)) * 100)}%` }}
             />
             <div className="relative flex justify-between">
               {STATUS_FLOW.map((s, i) => {
@@ -214,8 +215,9 @@ export default function AdminOrderDetail() {
             <p className="font-semibold text-stone-700">Update Order</p>
 
             <div>
-              <label className="block text-xs font-semibold text-stone-500 mb-1.5">Status</label>
+              <label htmlFor="order-status" className="block text-xs font-semibold text-stone-500 mb-1.5">Status</label>
               <select
+                id="order-status"
                 value={newStatus}
                 onChange={(e) => setNewStatus(e.target.value as OrderStatus)}
                 className="w-full rounded-xl border border-stone-200 px-3 py-2.5 text-sm outline-none transition focus:border-brand-400"
@@ -260,6 +262,7 @@ export default function AdminOrderDetail() {
             </div>
 
             <button
+              type="button"
               onClick={handleSave}
               disabled={saving}
               className="w-full rounded-xl bg-brand-600 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
