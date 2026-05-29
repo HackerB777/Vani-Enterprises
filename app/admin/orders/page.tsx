@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 import { STATUS_LABELS, type Order, type OrderStatus } from '@/lib/orders';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -27,22 +28,67 @@ const STATUS_OPTIONS: OrderStatus[] = [
 ];
 
 export default function AdminOrders() {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders]           = useState<Order[]>([]);
+  const [loading, setLoading]         = useState(true);
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
-  const [search, setSearch] = useState('');
-  const [sortDesc, setSortDesc] = useState(true);
+  const [search, setSearch]           = useState('');
+  const [sortDesc, setSortDesc]       = useState(true);
+  const [newIds, setNewIds]           = useState<Set<string>>(new Set());
+  const [liveConnected, setLiveConnected] = useState(false);
+  const [newCount, setNewCount]       = useState(0);
+  const isFirstLoad                   = useRef(true);
 
   useEffect(() => {
+    // Initial fetch
     fetch('/api/orders')
       .then(r => r.json())
-      .then(data => setOrders(Array.isArray(data) ? data : []));
+      .then(data => {
+        setOrders(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+
+    // Supabase Realtime subscription
+    const channel = supabase
+      .channel('admin-orders-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const order = payload.new as Order;
+            setOrders(prev => [order, ...prev]);
+            if (!isFirstLoad.current) {
+              setNewIds(prev => new Set([...prev, order.id]));
+              setNewCount(n => n + 1);
+              // Remove highlight after 8 seconds
+              setTimeout(() => {
+                setNewIds(prev => { const next = new Set(prev); next.delete(order.id); return next; });
+              }, 8000);
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            setOrders(prev =>
+              prev.map(o => o.id === (payload.new as Order).id ? (payload.new as Order) : o)
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setOrders(prev => prev.filter(o => o.id !== (payload.old as { id: string }).id));
+          }
+        }
+      )
+      .subscribe((status) => {
+        setLiveConnected(status === 'SUBSCRIBED');
+        isFirstLoad.current = false;
+      });
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const filtered = orders
     .filter((o) => {
       const matchStatus = statusFilter === 'all' || o.status === statusFilter;
       const q = search.toLowerCase();
-      const matchSearch = !q || o.id.toLowerCase().includes(q) ||
+      const matchSearch = !q ||
+        o.id.toLowerCase().includes(q) ||
         o.shippingAddress.name.toLowerCase().includes(q) ||
         o.shippingAddress.email.toLowerCase().includes(q);
       return matchStatus && matchSearch;
@@ -57,9 +103,28 @@ export default function AdminOrders() {
     <div className="p-6 lg:p-8 space-y-6">
 
       {/* Header */}
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-stone-400">Management</p>
-        <h2 className="font-display text-2xl font-bold text-stone-800">Orders</h2>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-stone-400">Management</p>
+          <h2 className="font-display text-2xl font-bold text-stone-800">Orders</h2>
+        </div>
+        <div className="flex items-center gap-2">
+          {newCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setNewCount(0)}
+              className="flex items-center gap-1.5 rounded-full bg-brand-600 px-3 py-1 text-xs font-bold text-white animate-pulse"
+            >
+              +{newCount} new
+            </button>
+          )}
+          <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+            liveConnected ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'
+          }`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${liveConnected ? 'bg-green-500 animate-pulse' : 'bg-stone-400'}`} />
+            {liveConnected ? 'Live' : 'Connecting…'}
+          </div>
+        </div>
       </div>
 
       {/* Filters */}
@@ -100,7 +165,9 @@ export default function AdminOrders() {
 
       {/* Table */}
       <div className="rounded-2xl border border-stone-200 bg-white shadow-card overflow-hidden">
-        {orders.length === 0 ? (
+        {loading ? (
+          <div className="py-20 text-center text-stone-400 text-sm">Loading orders…</div>
+        ) : orders.length === 0 ? (
           <div className="py-20 text-center text-stone-400">
             <svg className="mx-auto mb-4 h-12 w-12 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -129,8 +196,22 @@ export default function AdminOrders() {
                 </thead>
                 <tbody className="divide-y divide-stone-50">
                   {filtered.map((order) => (
-                    <tr key={order.id} className="hover:bg-stone-50/60 transition-colors">
-                      <td className="px-6 py-4 font-mono text-xs font-medium text-stone-600">{order.id}</td>
+                    <tr
+                      key={order.id}
+                      className={`transition-colors ${
+                        newIds.has(order.id)
+                          ? 'bg-brand-50 border-l-4 border-l-brand-500'
+                          : 'hover:bg-stone-50/60'
+                      }`}
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-medium text-stone-600">{order.id.slice(0, 8)}…</span>
+                          {newIds.has(order.id) && (
+                            <span className="rounded-full bg-brand-600 px-1.5 py-0.5 text-[9px] font-bold text-white">NEW</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 py-4">
                         <p className="font-medium text-stone-800">{order.shippingAddress.name}</p>
                         <p className="text-xs text-stone-400">{order.shippingAddress.email}</p>
