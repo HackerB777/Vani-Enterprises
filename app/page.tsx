@@ -3,7 +3,7 @@ import { ProductCard } from '@/components/store/ProductCard';
 import { HeroSlider } from '@/components/HeroSlider';
 import { UserWelcomeBanner } from '@/components/store/UserWelcomeBanner';
 import { supabase } from '@/lib/supabase';
-import { categories as defaultCategories, type Category } from '@/lib/products';
+import { getCategories } from '@/lib/getCategories';
 
 export const revalidate = 10;
 
@@ -78,7 +78,7 @@ export default async function HomePage() {
     { data: giftsData },
     { data: dealsData },
     { data: homeItemsData },
-    { data: settingsData },
+    categories,
   ] = await Promise.all([
     supabase.from('products').select('*').eq('isBestSeller', true).order('createdAt', { ascending: false }).limit(6),
     supabase.from('products').select('*').eq('category', 'electronics').order('createdAt', { ascending: false }).limit(6),
@@ -86,7 +86,7 @@ export default async function HomePage() {
     supabase.from('products').select('*').eq('category', 'gifts').order('createdAt', { ascending: false }).limit(6),
     supabase.from('products').select('*').eq('isOnSale', true).order('price', { ascending: true }).limit(6),
     supabase.from('products').select('*').in('category', ['decor', 'kitchen', 'dining']).order('createdAt', { ascending: false }).limit(6),
-    supabase.from('settings').select('categories').eq('id', 'main').maybeSingle(),
+    getCategories(),
   ]);
 
   const bestSellers = bestSellersData ?? [];
@@ -95,9 +95,6 @@ export default async function HomePage() {
   const gifts       = giftsData       ?? [];
   const deals       = dealsData       ?? [];
   const homeItems   = homeItemsData   ?? [];
-  const categories: Category[] = (settingsData as { categories?: Category[] } | null)?.categories?.length
-    ? (settingsData as { categories: Category[] }).categories
-    : defaultCategories;
 
   return (
     <div className="w-full overflow-hidden">
