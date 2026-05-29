@@ -7,28 +7,15 @@ import { categories as defaultCategories } from '@/lib/products';
 export async function GET() {
   try {
     const supabase = getSupabaseAdmin();
-    // Try key-based lookup first, then fall back to id='main' row
-    const { data: keyRow } = await supabase
+    const { data } = await supabase
       .from('settings')
-      .select('value')
-      .eq('key', 'categories')
-      .maybeSingle();
-
-    if (keyRow?.value && Array.isArray(keyRow.value)) {
-      return NextResponse.json(keyRow.value);
-    }
-
-    // Fall back to id='main' row where categories may be stored as a field
-    const { data: mainRow } = await supabase
-      .from('settings')
-      .select('*')
+      .select('categories')
       .eq('id', 'main')
-      .maybeSingle();
+      .single();
 
-    if (mainRow?.categories && Array.isArray(mainRow.categories)) {
-      return NextResponse.json(mainRow.categories);
+    if (data?.categories && Array.isArray(data.categories) && data.categories.length > 0) {
+      return NextResponse.json(data.categories);
     }
-
     return NextResponse.json(defaultCategories);
   } catch {
     return NextResponse.json(defaultCategories);
@@ -47,29 +34,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Expected array' }, { status: 400 });
     }
 
-    // Try key-based upsert first
-    const { error: keyErr } = await supabase
+    const { error } = await supabase
       .from('settings')
-      .upsert(
-        { key: 'categories', value: cats, updatedAt: new Date().toISOString() },
-        { onConflict: 'key' }
-      );
+      .upsert({ id: 'main', categories: cats }, { onConflict: 'id' });
 
-    if (!keyErr) return NextResponse.json({ success: true });
-
-    // Fall back: store in id='main' row as a 'categories' field
-    const { data: existing } = await supabase
-      .from('settings')
-      .select('*')
-      .eq('id', 'main')
-      .maybeSingle();
-
-    const merged = { ...(existing ?? {}), id: 'main', categories: cats };
-    const { error: mainErr } = await supabase
-      .from('settings')
-      .upsert(merged, { onConflict: 'id' });
-
-    if (mainErr) throw mainErr;
+    if (error) throw error;
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('POST /api/categories:', err);
