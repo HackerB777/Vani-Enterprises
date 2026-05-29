@@ -127,26 +127,28 @@ export default async function HomePage() {
       </div>
 
       {/* ── Category icon strip ── */}
-      <section className="bg-white border-b border-stone-100 py-5">
-        <div className="container">
-          <div className="flex items-start gap-2 overflow-x-auto pb-1 scrollbar-thin snap-x">
-            {categories.map((cat) => (
-              <Link
-                key={cat.slug}
-                href={`/shop?category=${cat.slug}`}
-                className="flex flex-col items-center gap-2 snap-start shrink-0 w-20 group"
-              >
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-stone-50 border border-stone-100 text-2xl sm:text-3xl transition-all group-hover:bg-brand-50 group-hover:border-brand-200 group-hover:scale-105">
-                  {CAT_ICONS[cat.slug] ?? '🛍️'}
-                </div>
-                <span className="text-center text-[10px] font-semibold text-stone-600 leading-tight line-clamp-2">
-                  {cat.name.split(' ')[0]}
-                </span>
-              </Link>
-            ))}
+      {categories.length > 0 && (
+        <section className="bg-white border-b border-stone-100 py-5">
+          <div className="container">
+            <div className="flex items-start gap-2 overflow-x-auto pb-1 scrollbar-thin snap-x">
+              {categories.map((cat) => (
+                <Link
+                  key={cat.slug}
+                  href={`/shop?category=${cat.slug}`}
+                  className="flex flex-col items-center gap-2 snap-start shrink-0 w-20 group"
+                >
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-stone-50 border border-stone-100 text-2xl sm:text-3xl transition-all group-hover:bg-brand-50 group-hover:border-brand-200 group-hover:scale-105">
+                    {CAT_ICONS[cat.slug] ?? '🛍️'}
+                  </div>
+                  <span className="text-center text-[10px] font-semibold text-stone-600 leading-tight line-clamp-2">
+                    {cat.name.split(' ')[0]}
+                  </span>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ── Deal of the Day — on-sale products ── */}
       {deals.length > 0 && (
@@ -266,7 +268,7 @@ export default async function HomePage() {
       )}
 
       {/* ── Category grid ── */}
-      <section className="bg-stone-50 border-b border-stone-100 py-8">
+      {categories.length > 0 && <section className="bg-stone-50 border-b border-stone-100 py-8">
         <div className="container">
           <h2 className="mb-5 font-display text-xl font-bold text-stone-900">Shop by Category</h2>
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
@@ -285,10 +287,10 @@ export default async function HomePage() {
             ))}
           </div>
         </div>
-      </section>
+      </section>}
 
       {/* ── Our Collection ── */}
-      <section className="bg-white border-b border-stone-100 py-8">
+      {categories.length > 0 && <section className="bg-white border-b border-stone-100 py-8">
         <div className="container">
           <div className="flex items-center justify-between mb-5">
             <div>
@@ -331,7 +333,7 @@ export default async function HomePage() {
             </Link>
           </div>
         </div>
-      </section>
+      </section>}
 
       {/* ── About strip ── */}
       <section className="bg-white py-12">

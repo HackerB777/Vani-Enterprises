@@ -9,17 +9,23 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const supabase = getSupabaseAdmin();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('settings')
       .select('categories')
       .eq('id', 'main')
-      .single();
+      .maybeSingle();
 
-    if (data?.categories && Array.isArray(data.categories) && data.categories.length > 0) {
-      return NextResponse.json(data.categories);
+    if (error) throw error;
+
+    // Row exists — return whatever admin saved (including empty array)
+    if (data !== null) {
+      return NextResponse.json(Array.isArray(data.categories) ? data.categories : []);
     }
-    return NextResponse.json(defaultCategories);
+
+    // No row yet — admin hasn't set anything, return empty
+    return NextResponse.json([]);
   } catch {
+    // DB unreachable — fall back to defaults so site doesn't fully break
     return NextResponse.json(defaultCategories);
   }
 }
