@@ -258,7 +258,7 @@ export function Navbar() {
             {/* Drawer header */}
             <div className="flex items-center justify-between border-b border-stone-100 bg-stone-900 px-5 py-4">
               <Link href="/" onClick={() => setMenuOpen(false)}>
-                  <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg bg-white border border-stone-100">0">
+                  <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg bg-white border border-stone-100">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/logo.jpg" alt="Vani Enterprises" loading="lazy" className="h-full w-auto object-contain" />
                 </div>
