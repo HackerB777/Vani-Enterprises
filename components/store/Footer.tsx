@@ -89,14 +89,18 @@ export function Footer() {
                 <WhatsAppIcon />
               </a>
               <a
-                href="#"
+                href="https://instagram.com/vanienterprises"
+                target="_blank"
+                rel="noopener noreferrer"
                 aria-label="Instagram"
                 className="rounded-full border border-stone-700 p-2 text-stone-400 transition hover:border-pink-500 hover:text-pink-400"
               >
                 <InstagramIcon />
               </a>
               <a
-                href="#"
+                href="https://facebook.com/vanienterprises"
+                target="_blank"
+                rel="noopener noreferrer"
                 aria-label="Facebook"
                 className="rounded-full border border-stone-700 p-2 text-stone-400 transition hover:border-blue-500 hover:text-blue-400"
               >

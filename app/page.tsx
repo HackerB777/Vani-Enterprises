@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ProductCard } from '@/components/store/ProductCard';
 import { HeroSlider } from '@/components/HeroSlider';
 import { UserWelcomeBanner } from '@/components/store/UserWelcomeBanner';
+import { Testimonials } from '@/components/Testimonials';
 import { supabase } from '@/lib/supabase';
 import { getCategories } from '@/lib/getCategories';
 
@@ -331,6 +332,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>}
+
+      {/* ── Testimonials ── */}
+      <Testimonials />
 
       {/* ── About strip ── */}
       <section className="bg-white py-12">

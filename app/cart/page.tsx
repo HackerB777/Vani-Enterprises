@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useCartStore } from '@/store/cartStore';
 import { categoryGradients } from '@/lib/products';
 
@@ -21,15 +21,45 @@ export default function CartPage() {
   const removeItem     = useCartStore((s) => s.removeItem);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const clearCart      = useCartStore((s) => s.clearCart);
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string; discountType: 'percentage' | 'flat'; discountValue: number;
+  } | null>(null);
+  const [couponMsg, setCouponMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [applying, setApplying] = useState(false);
 
   const subtotal  = useMemo(() => items.reduce((sum, i) => sum + i.product.price * i.quantity, 0), [items]);
   const shipping  = subtotal >= 999 || subtotal === 0 ? 0 : 99;
   const tax       = Math.round(subtotal * 0.05);
-  const total     = subtotal + shipping + tax;
+  const discount  = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    if (appliedCoupon.discountType === 'percentage')
+      return Math.round(subtotal * appliedCoupon.discountValue / 100);
+    return Math.min(appliedCoupon.discountValue, subtotal);
+  }, [appliedCoupon, subtotal]);
+  const total     = subtotal + shipping + tax - discount;
   const savings   = useMemo(() => items.reduce((sum, i) => {
     const orig = i.product.originalPrice ?? i.product.price;
     return sum + (orig - i.product.price) * i.quantity;
   }, 0), [items]);
+
+  async function handleApplyCoupon() {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+    setApplying(true); setCouponMsg(null); setAppliedCoupon(null);
+    try {
+      const res  = await fetch(`/api/coupons/${code}`);
+      const data = await res.json();
+      if (!res.ok) { setCouponMsg({ text: data.error ?? 'Invalid coupon', ok: false }); return; }
+      setAppliedCoupon(data);
+      const saving = data.discountType === 'percentage' ? `${data.discountValue}% off` : `₹${data.discountValue} off`;
+      setCouponMsg({ text: `Coupon applied! You save ${saving}`, ok: true });
+    } finally {
+      setApplying(false);
+    }
+  }
+
+  function removeCoupon() { setAppliedCoupon(null); setCouponInput(''); setCouponMsg(null); }
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -165,6 +195,47 @@ export default function CartPage() {
                 </div>
               )}
 
+              {/* Coupon Section */}
+              <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-soft">
+                <h2 className="font-display text-lg font-bold text-stone-900 mb-4">Coupon Code</h2>
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className="text-green-500"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      <span className="font-mono text-sm font-bold text-green-700">{appliedCoupon.code}</span>
+                      <span className="text-xs text-green-600">
+                        — {appliedCoupon.discountType === 'percentage' ? `${appliedCoupon.discountValue}% off` : `₹${appliedCoupon.discountValue} off`}
+                      </span>
+                    </div>
+                    <button type="button" onClick={removeCoupon} className="text-xs font-semibold text-red-500 hover:underline">Remove</button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex gap-3">
+                      <input
+                        type="text" value={couponInput}
+                        onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponMsg(null); }}
+                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleApplyCoupon())}
+                        placeholder="Enter coupon code" aria-label="Coupon code"
+                        className="flex-1 rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm font-mono uppercase tracking-wider text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white placeholder:normal-case placeholder:tracking-normal placeholder:font-sans"
+                      />
+                      <button
+                        type="button" onClick={handleApplyCoupon}
+                        disabled={applying || !couponInput.trim()}
+                        className="rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
+                      >
+                        {applying ? '…' : 'Apply'}
+                      </button>
+                    </div>
+                    {couponMsg && (
+                      <p className={`mt-2 text-xs font-medium ${couponMsg.ok ? 'text-green-600' : 'text-red-500'}`}>
+                        {couponMsg.text}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+
               <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-soft">
                 <h2 className="font-display text-lg font-bold text-stone-900">Order Summary</h2>
 
@@ -185,6 +256,15 @@ export default function CartPage() {
                     <span>Tax (5%)</span>
                     <span>₹{tax.toLocaleString('en-IN')}</span>
                   </div>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-green-600 font-semibold">
+                      <span className="flex items-center gap-1">
+                        Coupon
+                        <span className="rounded bg-green-100 px-1.5 py-0.5 font-mono text-[10px]">{appliedCoupon?.code}</span>
+                      </span>
+                      <span>− ₹{discount.toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
                 </div>
 
                 {shipping > 0 && (
@@ -197,9 +277,14 @@ export default function CartPage() {
 
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-stone-900">Total</span>
-                  <span className="font-display text-2xl font-bold text-stone-900">
-                    ₹{total.toLocaleString('en-IN')}
-                  </span>
+                  <div className="text-right">
+                    {discount > 0 && (
+                      <p className="text-xs text-stone-400 line-through">₹{(total + discount).toLocaleString('en-IN')}</p>
+                    )}
+                    <span className="font-display text-2xl font-bold text-stone-900">
+                      ₹{total.toLocaleString('en-IN')}
+                    </span>
+                  </div>
                 </div>
 
                 <Link

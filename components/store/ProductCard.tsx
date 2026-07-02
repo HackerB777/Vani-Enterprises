@@ -149,6 +149,15 @@ export function ProductCard({ product, compact = false }: Props) {
           <div className="h-5 mb-2" />
         )}
 
+        {/* Stock status */}
+        {product.stock !== undefined && (
+          <p className={`text-[11px] font-semibold mb-2 ${
+            product.stock > 10 ? 'text-green-600' : product.stock > 0 ? 'text-amber-600' : 'text-red-600'
+          }`}>
+            {product.stock > 10 ? '✓ In Stock' : product.stock > 0 ? `Only ${product.stock} left` : 'Out of Stock'}
+          </p>
+        )}
+
         {/* Price block */}
         <div className="flex items-baseline gap-1.5 flex-wrap">
           <span className="text-base font-bold text-stone-900">

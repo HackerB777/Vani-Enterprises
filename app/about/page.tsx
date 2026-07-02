@@ -81,6 +81,31 @@ export default function AboutPage() {
           </div>
         </div>
 
+        {/* Team */}
+        <div>
+          <div className="mb-10 text-center">
+            <p className="text-xs font-bold uppercase tracking-widest text-brand-600">Meet Our Team</p>
+            <h2 className="mt-2 font-display text-2xl sm:text-3xl font-bold text-stone-900">The People Behind Vani</h2>
+          </div>
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { name: 'Arun Krishnan', role: 'Founder & CEO', bio: 'Passionate about preserving Indian craft heritage and connecting artisans with customers.' },
+              { name: 'Meera Sharma', role: 'Creative Director', bio: 'Curates our product collection with an eye for quality, authenticity, and timeless design.' },
+              { name: 'Vikram Nair', role: 'Operations Lead', bio: 'Ensures every order reaches customers on time with our commitment to excellence.' },
+              { name: 'Priya Desai', role: 'Customer Care Lead', bio: 'Building relationships with customers and ensuring their complete satisfaction.' },
+            ].map((member) => (
+              <div key={member.name} className="rounded-2xl border border-stone-200 bg-white p-6 text-center shadow-soft hover:shadow-md transition-shadow">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-100 mx-auto mb-4 text-2xl">
+                  👤
+                </div>
+                <h3 className="font-display text-lg font-bold text-stone-900">{member.name}</h3>
+                <p className="text-xs font-semibold text-brand-600 mt-1">{member.role}</p>
+                <p className="mt-3 text-sm text-stone-600 leading-relaxed">{member.bio}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* CTA */}
         <div className="rounded-3xl bg-gradient-to-r from-brand-700 to-brand-900 px-4 sm:px-8 py-8 sm:py-12 text-center text-white">
           <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold">Ready to shop with purpose?</h2>

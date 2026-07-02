@@ -47,6 +47,22 @@ export default function ContactPage() {
         </div>
       </div>
 
+      {/* Map */}
+      <div className="border-b border-stone-200 bg-white py-8">
+        <div className="container">
+          <h2 className="font-display text-xl font-bold text-stone-900 mb-4">Visit Our Store</h2>
+          <div className="rounded-2xl overflow-hidden border border-stone-200 shadow-soft h-96 w-full">
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3886.456893949913!2d80.23658831525673!3d13.005369787325238!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a526f5e5e5e5e5d%3A0x5e5e5e5e5e5e5e5e!2sAnna%20Nagar%20East%2C%20Chennai!5e0!3m2!1sen!2sin!4v1234567890"
+              className="w-full h-full border-0"
+              allowFullScreen={true}
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Vani Enterprises Store Location"
+            />
+          </div>
+        </div>
+      </div>
+
       <div className="container py-10">
         <div className="grid gap-10 lg:grid-cols-[1fr_400px]">
           {/* Form */}
