@@ -28,6 +28,32 @@ export type OrderStatus =
 
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 
+export interface ParcelEvent {
+  id: string;
+  orderId: string;
+  status: string;
+  location?: string;
+  description?: string;
+  eventTimestamp: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface Shipment {
+  id: string;
+  orderId: string;
+  shipmentId?: string;
+  courier: string;
+  trackingUrl?: string;
+  estimatedDeliveryDate?: string;
+  actualDeliveryDate?: string;
+  status: string;
+  rawData?: Record<string, unknown>;
+  lastSyncedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Order {
   id: string;
   items: OrderItem[];
@@ -43,6 +69,9 @@ export interface Order {
   trackingId?: string;
   courier?: string;
   notes?: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  userId?: string;
 }
 
 export function calculateSubtotal(items: OrderItem[]) {
@@ -68,7 +97,7 @@ export function createOrderPayload(
     tax,
     total,
     paymentMethod,
-    paymentStatus: paymentMethod === 'cod' ? 'pending' : 'paid',
+    paymentStatus: 'pending',
     status:        'placed',
     shippingAddress,
     createdAt:     new Date().toISOString(),

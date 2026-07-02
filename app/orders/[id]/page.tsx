@@ -82,8 +82,9 @@ export default function OrderDetailPage() {
   const [error, setError]     = useState('');
 
   useEffect(() => {
-    const id = params?.id;
+    const id = params?.id as string;
     if (!id) return;
+
     fetch(`/api/orders/${id}`)
       .then(async (res) => {
         if (!res.ok) throw new Error((await res.json()).error || 'Unable to load order');
@@ -92,6 +93,36 @@ export default function OrderDetailPage() {
       .then((data) => setOrder(data.order))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+
+    const initRealtime = async () => {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+        );
+
+        const subscription = supabase
+          .channel(`orders:${id}`)
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${id}` }, (payload) => {
+            setOrder(payload.new as Order);
+          })
+          .subscribe();
+
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (err) {
+        console.error('Realtime subscription failed:', err);
+      }
+    };
+
+    let unsubscribe: (() => void) | null = null;
+    initRealtime().then((fn) => { unsubscribe = fn ?? null; });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [params]);
 
   if (loading) {

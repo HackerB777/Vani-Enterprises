@@ -214,10 +214,10 @@ export function Navbar() {
               )}
             </div>
 
-            {/* Mobile hamburger */}
+{/* Mobile hamburger */}
             <button type="button" ref={hamburgerRef} onClick={() => setMenuOpen(!menuOpen)}
               aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-              aria-expanded={menuOpen}
+              aria-expanded={menuOpen ? 'true' : 'false'}
               className="rounded-lg p-3 text-stone-300 transition hover:bg-stone-800 lg:hidden"
             >
               {menuOpen ? (
@@ -228,7 +228,6 @@ export function Navbar() {
             </button>
           </div>
         </div>
-
         {/* ── Desktop category nav strip ── */}
         <div className="hidden border-t border-stone-800 lg:block">
           <div className="container flex items-center gap-1">
@@ -259,7 +258,7 @@ export function Navbar() {
             {/* Drawer header */}
             <div className="flex items-center justify-between border-b border-stone-100 bg-stone-900 px-5 py-4">
               <Link href="/" onClick={() => setMenuOpen(false)}>
-                <div className="flex h-9 w-12 items-center justify-center overflow-hidden rounded-lg bg-white border border-stone-100">
+                  <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg bg-white border border-stone-100">0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/logo.jpg" alt="Vani Enterprises" loading="lazy" className="h-full w-auto object-contain" />
                 </div>

@@ -76,6 +76,41 @@ export default function AdminOrderDetail() {
         setLoading(false);
       })
       .catch(() => { setError('Failed to load order'); setLoading(false); });
+
+    const initRealtime = async () => {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+        );
+
+        const subscription = supabase
+          .channel(`orders:${id}`)
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${id}` }, (payload) => {
+            const updatedOrder = payload.new as Order;
+            setOrder(updatedOrder);
+            setNewStatus(updatedOrder.status);
+            setTrackingId(updatedOrder.trackingId ?? '');
+            setCourier(updatedOrder.courier ?? '');
+            setNotes(updatedOrder.notes ?? '');
+          })
+          .subscribe();
+
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (err) {
+        console.error('Realtime subscription failed:', err);
+      }
+    };
+
+    let unsubscribe: (() => void) | null = null;
+    initRealtime().then((fn) => { unsubscribe = fn ?? null; });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [id]);
 
   const handleSave = async () => {
@@ -173,11 +208,10 @@ export default function AdminOrderDetail() {
         <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-card">
           <p className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-4">Progress</p>
           <div className="relative">
-            <div className="absolute top-3.5 left-0 right-0 h-0.5 bg-stone-200" />
+<div className="absolute top-3.5 left-0 right-0 h-0.5 bg-stone-200" />
             <div
               className="absolute top-3.5 left-0 h-0.5 bg-brand-500 transition-all duration-700"
-              // eslint-disable-next-line react/forbid-dom-props
-              style={{ width: `${Math.round((currentStep / (STATUS_FLOW.length - 1)) * 100)}%` }}
+              style={{ width: `${Math.round((currentStep / Math.max(STATUS_FLOW.length - 1, 1)) * 100)}%` }}
             />
             <div className="relative flex justify-between">
               {STATUS_FLOW.map((s, i) => {

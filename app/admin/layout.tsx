@@ -51,13 +51,13 @@ function Sidebar({
     <aside className={`admin-sidebar flex h-full flex-col transition-all duration-300 ${collapsed ? 'w-16' : 'w-60'}`}>
       <div className="flex h-16 items-center border-b border-stone-800 px-3">
         {collapsed ? (
-          <div className="mx-auto flex h-9 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white">
+          <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.jpg" alt="Vani Enterprises" className="h-full w-auto object-contain" />
           </div>
         ) : (
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex h-10 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/logo.jpg" alt="Vani Enterprises" className="h-full w-auto object-contain" />
             </div>

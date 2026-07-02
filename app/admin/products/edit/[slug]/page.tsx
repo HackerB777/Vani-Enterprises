@@ -61,6 +61,7 @@ export default function EditProduct() {
     shortDesc: '', longDesc: '',
     price: '', originalPrice: '', stock: '',
     isFeatured: false, isNewArrival: false, isBestSeller: false, isOnSale: false,
+    isCodAvailable: true,
   });
   const [details, setDetails]   = useState<string[]>(['']);
 
@@ -85,6 +86,7 @@ export default function EditProduct() {
             isNewArrival:  p.isNewArrival  ?? false,
             isBestSeller:  p.isBestSeller  ?? false,
             isOnSale:      p.isOnSale      ?? false,
+            isCodAvailable: p.isCodAvailable ?? true,
           });
           setDetails(p.details?.length ? p.details : ['']);
           setImages(
@@ -184,6 +186,7 @@ export default function EditProduct() {
           isNewArrival:  form.isNewArrival,
           isBestSeller:  form.isBestSeller,
           isOnSale:      form.isOnSale,
+          isCodAvailable: form.isCodAvailable,
         }),
       });
       const data = await res.json();
@@ -419,10 +422,11 @@ export default function EditProduct() {
           <h3 className="font-semibold text-stone-800 border-b border-stone-100 pb-3">Labels & Visibility</h3>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {([
-              { key: 'isFeatured',   label: 'Featured',    hint: 'Show on homepage'    },
-              { key: 'isNewArrival', label: 'New Arrival',  hint: 'Show "New" badge'    },
-              { key: 'isBestSeller', label: 'Best Seller',  hint: 'Show "Hot" badge'    },
-              { key: 'isOnSale',     label: 'On Sale',      hint: 'Show discount badge' },
+              { key: 'isFeatured',    label: 'Featured',      hint: 'Show on homepage'      },
+              { key: 'isNewArrival',  label: 'New Arrival',   hint: 'Show "New" badge'      },
+              { key: 'isBestSeller',  label: 'Best Seller',   hint: 'Show "Hot" badge'      },
+              { key: 'isOnSale',      label: 'On Sale',       hint: 'Show discount badge'    },
+              { key: 'isCodAvailable',label: 'COD Available', hint: 'Allow Cash on Delivery'  },
             ] as const).map(({ key, label, hint }) => (
               <label key={key} className={`flex cursor-pointer flex-col gap-1 rounded-xl border px-3 py-3 transition ${form[key] ? 'border-brand-400 bg-brand-50/60' : 'border-stone-200 hover:border-brand-300 hover:bg-brand-50/30'}`}>
                 <div className="flex items-center gap-2">

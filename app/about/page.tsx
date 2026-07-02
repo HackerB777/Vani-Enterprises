@@ -16,7 +16,7 @@ export default function AboutPage() {
             <span className="text-brand-400">Crafted for Every Indian Home</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-stone-400">
-            Vani Enterprises has spent over 15 years curating the finest home goods from artisan communities
+            Vani Enterprises has spent over 7 years curating the finest home goods from artisan communities
             across India — bringing tradition, craftsmanship and beauty to modern Indian living.
           </p>
         </div>
@@ -44,7 +44,7 @@ export default function AboutPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             {[
-              { value: '15+', label: 'Years of Excellence' },
+              { value: '7+', label: 'Years of Excellence' },
               { value: '80+', label: 'Artisan Partners' },
               { value: '500+', label: 'Products Curated' },
               { value: '20K+', label: 'Happy Customers' },

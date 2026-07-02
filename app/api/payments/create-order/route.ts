@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { getSupabaseAdmin } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -9,28 +10,58 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { amount, receipt } = await request.json();
+    const { amount, receipt, orderId } = await request.json();
 
     if (!amount || Number(amount) < 1) {
       return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
     }
 
+    if (!orderId) {
+      return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
+    }
+
+    const supabase = getSupabaseAdmin();
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select('id, total, paymentMethod')
+      .eq('id', orderId)
+      .single();
+
+    if (orderError || !order) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    if (order.paymentMethod !== 'razorpay') {
+      return NextResponse.json({ error: 'Order is not configured for Razorpay payment' }, { status: 400 });
+    }
+
+    const roundedAmount = Math.round(Number(amount));
+    if (roundedAmount !== order.total) {
+      return NextResponse.json({ error: 'Amount mismatch with order total' }, { status: 400 });
+    }
+
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    if (!keyId || !keySecret) {
+      return NextResponse.json({ error: 'Razorpay credentials are not configured' }, { status: 500 });
+    }
+
     const Razorpay = (await import('razorpay')).default;
     const rzp = new Razorpay({
-      key_id:     process.env.RAZORPAY_KEY_ID!,
-      key_secret: process.env.RAZORPAY_KEY_SECRET!,
+      key_id:     keyId,
+      key_secret: keySecret,
     });
 
-    const order = await rzp.orders.create({
-      amount:   Math.round(Number(amount) * 100),
+    const rzpOrder = await rzp.orders.create({
+      amount:   Math.round(roundedAmount * 100),
       currency: 'INR',
-      receipt:  receipt ?? `VE-${Date.now()}`,
+      receipt:  receipt ?? orderId,
     });
 
     return NextResponse.json({
-      razorpayOrderId: order.id,
-      amount:          order.amount,
-      currency:        order.currency,
+      razorpayOrderId: rzpOrder.id,
+      amount:          rzpOrder.amount,
+      currency:        rzpOrder.currency,
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Failed to create Razorpay order';

@@ -185,6 +185,7 @@ export default function AdminProducts() {
                         {product.isBestSeller && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Best Seller</span>}
                         {product.isNewArrival && <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">New</span>}
                         {product.isOnSale     && <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700">Sale</span>}
+                        {product.isCodAvailable !== false && <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-700">COD</span>}
                       </div>
                     </td>
                     <td className="px-4 py-4">

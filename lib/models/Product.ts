@@ -16,6 +16,7 @@ export interface IProduct {
   isBestSeller?: boolean;
   isNewArrival?: boolean;
   isOnSale?: boolean;
+  isCodAvailable?: boolean;
   createdAt: string;
   updatedAt: string;
 }

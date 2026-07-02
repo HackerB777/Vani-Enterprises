@@ -72,6 +72,7 @@ export default function CheckoutPage() {
   }, [appliedCoupon, subtotal]);
 
   const total = subtotal + shipping + tax - discount;
+  const codAllowed = items.every((item) => item.product.isCodAvailable !== false);
 
   async function handleApplyCoupon() {
     const code = couponInput.trim().toUpperCase();
@@ -120,6 +121,10 @@ export default function CheckoutPage() {
       if (!res.ok) throw new Error(data.error || 'Unable to place order.');
       const order = data.order;
 
+      if (payment === 'cod' && !codAllowed) {
+        throw new Error('Cash on Delivery is unavailable for one or more items in your cart.');
+      }
+
       // 2. COD — done
       if (payment === 'cod') {
         clearCart();
@@ -131,17 +136,20 @@ export default function CheckoutPage() {
       const rzpRes = await fetch('/api/payments/create-order', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ amount: total, receipt: order.id }),
+        body:    JSON.stringify({ amount: total, receipt: order.id, orderId: order.id }),
       });
       const rzpData = await rzpRes.json();
       if (!rzpRes.ok) throw new Error(rzpData.error || 'Failed to initiate payment.');
+
+      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+      if (!razorpayKey) throw new Error('Payment provider is not configured.');
 
       // 4. Load Razorpay JS and open modal
       await loadRazorpayScript();
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rzp = new (window as any).Razorpay({
-        key:      process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key:      razorpayKey,
         amount:   rzpData.amount,
         currency: rzpData.currency,
         order_id: rzpData.razorpayOrderId,
@@ -154,17 +162,32 @@ export default function CheckoutPage() {
           razorpay_payment_id: string;
           razorpay_signature: string;
         }) => {
-          const v = await fetch('/api/payments/verify', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({
-              razorpay_order_id:   response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature:  response.razorpay_signature,
-              orderId:             order.id,
-            }),
-          });
-          if ((await v.json()).success) { clearCart(); router.push(`/orders/${order.id}`); }
+          try {
+            const v = await fetch('/api/payments/verify', {
+              method:  'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body:    JSON.stringify({
+                razorpay_order_id:   response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature:  response.razorpay_signature,
+                orderId:             order.id,
+              }),
+            });
+            const verifyData = await v.json();
+            if (!v.ok || !verifyData.success) {
+              setError(verifyData.error || 'Payment verification failed.');
+              return;
+            }
+            clearCart();
+            router.push(`/orders/${order.id}`);
+          } catch (verifyError: unknown) {
+            setError(verifyError instanceof Error ? verifyError.message : 'Payment verification failed.');
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setError('Payment was cancelled. Please try again.');
+          },
         },
       });
       rzp.open();
@@ -234,22 +257,31 @@ export default function CheckoutPage() {
                     {([
                       { id: 'razorpay', label: 'Pay Online', sub: 'UPI · Cards · Wallets · Net Banking', icon: '🏦' },
                       { id: 'cod',      label: 'Cash on Delivery', sub: 'Pay when your order arrives', icon: '💵' },
-                    ] as const).map((opt) => (
-                      <button
-                        key={opt.id} type="button" onClick={() => setPayment(opt.id)}
-                        className={`flex items-start gap-3 rounded-xl border-2 p-4 text-left transition-all ${
-                          payment === opt.id ? 'border-brand-600 bg-brand-50' : 'border-stone-200 hover:border-stone-300'
-                        }`}
-                      >
-                        <span className="text-2xl">{opt.icon}</span>
-                        <div>
-                          <p className="font-semibold text-stone-900">{opt.label}</p>
-                          <p className="mt-0.5 text-xs text-stone-500">{opt.sub}</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                    ] as const).map((opt) => {
+                      const disabled = opt.id === 'cod' && !codAllowed;
+                      return (
+                        <button
+                          key={opt.id} type="button" onClick={() => !disabled && setPayment(opt.id)}
+                          disabled={disabled}
+                          className={`flex items-start gap-3 rounded-xl border-2 p-4 text-left transition-all ${
+                            disabled ? 'border-stone-200 bg-stone-100 text-stone-400 cursor-not-allowed' : payment === opt.id ? 'border-brand-600 bg-brand-50' : 'border-stone-200 hover:border-stone-300'
+                          }`}
+                        >
+                          <span className="text-2xl">{opt.icon}</span>
+                          <div>
+                            <p className="font-semibold text-stone-900">{opt.label}</p>
+                            <p className={`mt-0.5 text-xs ${disabled ? 'text-stone-400' : 'text-stone-500'}`}>{opt.sub}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+</div>
                 </div>
+                {!codAllowed && (
+                  <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    Cash on Delivery is unavailable for one or more items in your cart.
+                  </p>
+                )}
 
                 {/* Coupon */}
                 <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-soft">

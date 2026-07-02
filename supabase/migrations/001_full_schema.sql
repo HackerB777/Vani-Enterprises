@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS products (
   "isNewArrival"  BOOLEAN DEFAULT FALSE,
   "isBestSeller"  BOOLEAN DEFAULT FALSE,
   "isOnSale"      BOOLEAN DEFAULT FALSE,
+  "isCodAvailable" BOOLEAN DEFAULT TRUE,
   rating          NUMERIC(3,1),
   "reviewCount"   INTEGER DEFAULT 0,
   "createdAt"     TIMESTAMPTZ DEFAULT NOW(),
@@ -125,3 +126,43 @@ CREATE TABLE IF NOT EXISTS addresses (
 CREATE INDEX IF NOT EXISTS idx_addresses_userId ON addresses("userId");
 
 ALTER TABLE addresses DISABLE ROW LEVEL SECURITY;
+
+-- ── 7. PARCEL EVENTS ────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS parcel_events (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  "orderId"       TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  status          TEXT NOT NULL,
+  location        TEXT,
+  description     TEXT,
+  "eventTimestamp" TIMESTAMPTZ DEFAULT NOW(),
+  "metadata"      JSONB,
+  "createdAt"     TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_parcel_events_orderId ON parcel_events("orderId");
+CREATE INDEX IF NOT EXISTS idx_parcel_events_status ON parcel_events(status);
+CREATE INDEX IF NOT EXISTS idx_parcel_events_timestamp ON parcel_events("eventTimestamp" DESC);
+
+ALTER TABLE parcel_events DISABLE ROW LEVEL SECURITY;
+
+-- ── 8. SHIPMENTS ────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS shipments (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  "orderId"       TEXT NOT NULL UNIQUE REFERENCES orders(id) ON DELETE CASCADE,
+  "shipmentId"    TEXT,
+  courier         TEXT NOT NULL,
+  "trackingUrl"   TEXT,
+  "estimatedDeliveryDate" DATE,
+  "actualDeliveryDate"    DATE,
+  status          TEXT DEFAULT 'pending',
+  "rawData"       JSONB,
+  "lastSyncedAt"  TIMESTAMPTZ,
+  "createdAt"     TIMESTAMPTZ DEFAULT NOW(),
+  "updatedAt"     TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_shipments_orderId ON shipments("orderId");
+CREATE INDEX IF NOT EXISTS idx_shipments_courier ON shipments(courier);
+CREATE INDEX IF NOT EXISTS idx_shipments_status ON shipments(status);
+
+ALTER TABLE shipments DISABLE ROW LEVEL SECURITY;
