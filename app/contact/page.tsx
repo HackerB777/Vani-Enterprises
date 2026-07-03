@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 
+const STORE_ADDRESS = 'Shop No 7, 5, East Coast Road, Lalitha Nagar, Thiruvanmiyur, Chennai, Tamil Nadu 600041';
+
 function Field({
   label, type = 'text', value, onChange, placeholder, required = true,
 }: {
@@ -50,12 +52,23 @@ export default function ContactPage() {
       {/* Map */}
       <div className="border-b border-stone-200 bg-white py-8">
         <div className="container">
-          <h2 className="font-display text-xl font-bold text-stone-900 mb-4">Visit Our Store</h2>
+          <div className="mb-4 flex items-center justify-between gap-4 flex-wrap">
+            <h2 className="font-display text-xl font-bold text-stone-900">Visit Our Store</h2>
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(STORE_ADDRESS)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-semibold text-brand-600 hover:underline"
+            >
+              Get Directions →
+            </a>
+          </div>
           <div className="rounded-2xl overflow-hidden border border-stone-200 shadow-soft h-96 w-full">
             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3886.456893949913!2d80.23658831525673!3d13.005369787325238!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a526f5e5e5e5e5d%3A0x5e5e5e5e5e5e5e5e!2sAnna%20Nagar%20East%2C%20Chennai!5e0!3m2!1sen!2sin!4v1234567890"
+              src={`https://www.google.com/maps?q=${encodeURIComponent(STORE_ADDRESS)}&output=embed`}
               className="w-full h-full border-0"
               allowFullScreen={true}
+              loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
               title="Vani Enterprises Store Location"
             />
@@ -121,7 +134,7 @@ export default function ContactPage() {
             {[
               {
                 title: 'Visit Our Store',
-                lines: ['No. 42, Anna Nagar East', 'Chennai, Tamil Nadu 600102', 'Mon–Sat: 10 AM – 8 PM'],
+                lines: ['shop no 7, 5, EastCoast Road, Lalitha Nagar, Thiruvanmiyur, Chennai, Greater Chennai, Tamil Nadu 600041', 'Mon–Sat: 10 AM – 8 PM'],
               },
               {
                 title: 'Call Us',
