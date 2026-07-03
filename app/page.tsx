@@ -81,12 +81,12 @@ export default async function HomePage() {
     { data: homeItemsData },
     categories,
   ] = await Promise.all([
-    supabase.from('products').select('*').eq('isBestSeller', true).order('createdAt', { ascending: false }).limit(6),
-    supabase.from('products').select('*').eq('category', 'electronics').order('createdAt', { ascending: false }).limit(6),
-    supabase.from('products').select('*').eq('isNewArrival', true).order('createdAt', { ascending: false }).limit(6),
-    supabase.from('products').select('*').eq('category', 'gifts').order('createdAt', { ascending: false }).limit(6),
-    supabase.from('products').select('*').eq('isOnSale', true).order('price', { ascending: true }).limit(6),
-    supabase.from('products').select('*').in('category', ['decor', 'kitchen', 'dining']).order('createdAt', { ascending: false }).limit(6),
+    supabase.from('products').select('id,slug,name,price,originalPrice,stock,category,subcategory,images,rating,reviewCount,isBestSeller,isNewArrival,isOnSale,isFeatured').eq('isBestSeller', true).order('createdAt', { ascending: false }).limit(6),
+    supabase.from('products').select('id,slug,name,price,originalPrice,stock,category,subcategory,images,rating,reviewCount,isBestSeller,isNewArrival,isOnSale,isFeatured').eq('category', 'electronics').order('createdAt', { ascending: false }).limit(6),
+    supabase.from('products').select('id,slug,name,price,originalPrice,stock,category,subcategory,images,rating,reviewCount,isBestSeller,isNewArrival,isOnSale,isFeatured').eq('isNewArrival', true).order('createdAt', { ascending: false }).limit(6),
+    supabase.from('products').select('id,slug,name,price,originalPrice,stock,category,subcategory,images,rating,reviewCount,isBestSeller,isNewArrival,isOnSale,isFeatured').eq('category', 'gifts').order('createdAt', { ascending: false }).limit(6),
+    supabase.from('products').select('id,slug,name,price,originalPrice,stock,category,subcategory,images,rating,reviewCount,isBestSeller,isNewArrival,isOnSale,isFeatured').eq('isOnSale', true).order('price', { ascending: true }).limit(6),
+    supabase.from('products').select('id,slug,name,price,originalPrice,stock,category,subcategory,images,rating,reviewCount,isBestSeller,isNewArrival,isOnSale,isFeatured').in('category', ['decor', 'kitchen', 'dining']).order('createdAt', { ascending: false }).limit(6),
     getCategories(),
   ]);
 
