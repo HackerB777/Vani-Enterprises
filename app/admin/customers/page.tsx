@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { orders } from '@/lib/orderStorage';
+import { useEffect, useState } from 'react';
+import type { Order } from '@/lib/orders';
 
 interface CustomerSummary {
   name: string;
@@ -14,7 +14,7 @@ interface CustomerSummary {
   lastOrder: string;
 }
 
-function buildCustomers(): CustomerSummary[] {
+function buildCustomers(orders: Order[]): CustomerSummary[] {
   const map = new Map<string, CustomerSummary>();
   for (const order of orders) {
     const { email, name, phone, city, state } = order.shippingAddress;
@@ -31,8 +31,18 @@ function buildCustomers(): CustomerSummary[] {
 }
 
 export default function AdminCustomers() {
-  const [search, setSearch] = useState('');
-  const customers = buildCustomers();
+  const [search, setSearch]   = useState('');
+  const [orders, setOrders]   = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/orders')
+      .then((r) => r.json())
+      .then((data) => setOrders(Array.isArray(data) ? data : []))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const customers = buildCustomers(orders);
 
   const filtered = customers.filter((c) => {
     const q = search.toLowerCase();
@@ -86,7 +96,12 @@ export default function AdminCustomers() {
       </div>
 
       <div className="rounded-2xl border border-stone-200 bg-white shadow-card overflow-hidden">
-        {customers.length === 0 ? (
+        {loading ? (
+          <div className="py-16 text-center">
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-stone-200 border-t-brand-600" />
+            <p className="mt-3 text-sm text-stone-400">Loading customers…</p>
+          </div>
+        ) : customers.length === 0 ? (
           <div className="py-20 text-center text-stone-400">
             <svg className="mx-auto mb-4 h-12 w-12 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
