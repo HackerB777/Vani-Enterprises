@@ -51,15 +51,15 @@ function Sidebar({
     <aside className={`admin-sidebar flex h-full flex-col transition-all duration-300 ${collapsed ? 'w-16' : 'w-60'}`}>
       <div className="flex h-16 items-center border-b border-stone-800 px-3">
         {collapsed ? (
-          <div className="transform-gpu mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white">
+          <div className="transform-gpu mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-white">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.jpg" alt="Vani Enterprises" className="h-full w-auto rounded-lg object-contain" />
+            <img src="/logo.png" alt="Vani Enterprises" className="h-full w-full rounded-full object-cover object-top" />
           </div>
         ) : (
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="transform-gpu flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white">
+            <div className="transform-gpu flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-white">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.jpg" alt="Vani Enterprises" className="h-full w-auto rounded-lg object-contain" />
+              <img src="/logo.png" alt="Vani Enterprises" className="h-full w-full rounded-full object-cover object-top" />
             </div>
             <div className="min-w-0">
               <p className="text-sm font-bold text-white leading-tight truncate">Vani</p>

@@ -73,7 +73,7 @@ export function Footer() {
           <div>
             <Link href="/" aria-label="Vani Enterprises – Home" className="inline-block">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.jpg" alt="Vani Enterprises" loading="lazy" className="logo-screen h-14 w-auto" />
+              <img src="/logo.png" alt="Vani Enterprises" loading="lazy" className="logo-screen h-14 w-auto" />
             </Link>
             <p className="mt-4 text-sm leading-relaxed text-stone-500">
               Exclusive home collections crafted with care, delivered from Chennai to your doorstep across India.

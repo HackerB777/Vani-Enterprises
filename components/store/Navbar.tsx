@@ -89,9 +89,9 @@ export function Navbar() {
 
           {/* Logo */}
           <Link href="/" aria-label="Vani Enterprises – Home" className="flex-shrink-0">
-            <div className="transform-gpu flex h-10 w-14 items-center justify-center overflow-hidden rounded-lg bg-white border border-stone-100">
+            <div className="transform-gpu flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-white border border-stone-100">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.jpg" alt="Vani Enterprises" loading="lazy" className="h-full w-auto rounded-lg object-contain" />
+              <img src="/logo.png" alt="Vani Enterprises" loading="lazy" className="h-full w-full rounded-full object-cover object-top" />
             </div>
           </Link>
 
@@ -258,9 +258,9 @@ export function Navbar() {
             {/* Drawer header */}
             <div className="flex items-center justify-between border-b border-stone-100 bg-stone-900 px-5 py-4">
               <Link href="/" onClick={() => setMenuOpen(false)}>
-                <div className="transform-gpu flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg bg-white border border-stone-100">
+                <div className="transform-gpu flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-white border border-stone-100">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/logo.jpg" alt="Vani Enterprises" loading="lazy" className="h-full w-auto rounded-lg object-contain" />
+                  <img src="/logo.png" alt="Vani Enterprises" loading="lazy" className="h-full w-full rounded-full object-cover object-top" />
                 </div>
               </Link>
               <button type="button" onClick={closeMenu} aria-label="Close menu"
