@@ -89,9 +89,9 @@ export function Navbar() {
 
           {/* Logo */}
           <Link href="/" aria-label="Vani Enterprises – Home" className="flex-shrink-0">
-            <div className="flex h-10 w-14 items-center justify-center overflow-hidden rounded-lg bg-white border border-stone-100">
+            <div className="transform-gpu flex h-10 w-14 items-center justify-center overflow-hidden rounded-lg bg-white border border-stone-100">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.jpg" alt="Vani Enterprises" loading="lazy" className="h-full w-auto object-contain" />
+              <img src="/logo.jpg" alt="Vani Enterprises" loading="lazy" className="h-full w-auto rounded-lg object-contain" />
             </div>
           </Link>
 
@@ -109,13 +109,13 @@ export function Navbar() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleSearchKey}
               placeholder="Search products…"
-              className="flex-1 min-w-0 px-4 py-2.5 text-sm text-stone-800 placeholder-stone-400 outline-none bg-transparent"
+              className="flex-1 min-w-0 px-3 py-2.5 sm:px-4 text-sm text-stone-800 placeholder-stone-400 outline-none bg-transparent"
             />
             <button
               type="button"
               onClick={() => goSearch(query)}
               aria-label="Search"
-              className="flex h-full items-center gap-1.5 bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 flex-shrink-0"
+              className="flex h-full items-center gap-1.5 bg-brand-600 px-3 py-2.5 sm:px-5 text-sm font-semibold text-white transition hover:bg-brand-700 flex-shrink-0"
             >
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -127,11 +127,11 @@ export function Navbar() {
           {/* ── Right icons ── */}
           <div className="flex items-center gap-1 flex-shrink-0">
 
-            {/* Wishlist */}
+            {/* Wishlist — tucked into the hamburger drawer below sm, where space is tightest */}
             <Link
               href="/wishlist"
               aria-label={`Wishlist (${wishlistCount} items)`}
-              className="relative flex flex-col items-center gap-0.5 rounded-lg px-3 py-2 text-stone-300 transition hover:bg-stone-800 hover:text-white"
+              className="relative hidden sm:flex flex-col items-center gap-0.5 rounded-lg px-3 py-2 text-stone-300 transition hover:bg-stone-800 hover:text-white"
             >
               <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -161,8 +161,8 @@ export function Navbar() {
               )}
             </Link>
 
-            {/* Account */}
-            <div className="relative" ref={userMenuRef}>
+            {/* Account — tucked into the hamburger drawer below sm, where space is tightest */}
+            <div className="relative hidden sm:block" ref={userMenuRef}>
               {userName ? (
                 <>
                   <button
@@ -217,7 +217,7 @@ export function Navbar() {
 {/* Mobile hamburger */}
             <button type="button" ref={hamburgerRef} onClick={() => setMenuOpen(!menuOpen)}
               aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-              aria-expanded={menuOpen ? 'true' : 'false'}
+              aria-expanded={menuOpen}
               className="rounded-lg p-3 text-stone-300 transition hover:bg-stone-800 lg:hidden"
             >
               {menuOpen ? (
@@ -258,9 +258,9 @@ export function Navbar() {
             {/* Drawer header */}
             <div className="flex items-center justify-between border-b border-stone-100 bg-stone-900 px-5 py-4">
               <Link href="/" onClick={() => setMenuOpen(false)}>
-                  <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg bg-white border border-stone-100">
+                <div className="transform-gpu flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg bg-white border border-stone-100">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/logo.jpg" alt="Vani Enterprises" loading="lazy" className="h-full w-auto object-contain" />
+                  <img src="/logo.jpg" alt="Vani Enterprises" loading="lazy" className="h-full w-auto rounded-lg object-contain" />
                 </div>
               </Link>
               <button type="button" onClick={closeMenu} aria-label="Close menu"
