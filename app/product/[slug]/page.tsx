@@ -2,13 +2,17 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect, use } from 'react';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
+import { useRecentlyViewedStore } from '@/store/recentlyViewedStore';
+import { useBuyNowStore } from '@/store/buyNowStore';
 import type { IProduct } from '@/lib/models/Product';
 import { categoryGradients, categories, getDiscountPercent } from '@/lib/products';
 import { StarRating } from '@/components/store/StarRating';
 import { ProductCard } from '@/components/store/ProductCard';
+import { RecentlyViewed } from '@/components/store/RecentlyViewed';
 
 function HeartIcon({ filled }: { filled: boolean }) {
   return (
@@ -32,9 +36,12 @@ interface Props { params: Promise<{ slug: string }> }
 
 export default function ProductPage({ params }: Props) {
   const { slug }      = use(params);
+  const router        = useRouter();
   const addItem       = useCartStore((s) => s.addItem);
   const toggleItem    = useWishlistStore((s) => s.toggleItem);
   const wishlistItems = useWishlistStore((s) => s.items);
+  const addRecentlyViewed = useRecentlyViewedStore((s) => s.addProduct);
+  const setBuyNow     = useBuyNowStore((s) => s.setBuyNow);
   const [qty, setQty]         = useState(1);
   const [added, setAdded]     = useState(false);
   const [product, setProduct] = useState<IProduct | null>(null);
@@ -50,12 +57,14 @@ export default function ProductPage({ params }: Props) {
         setProduct(p);
         setLoading(false);
         if (p) {
+          addRecentlyViewed(p);
           fetch(`/api/products?category=${p.category}&limit=5`)
             .then((r) => r.json())
             .then((all: IProduct[]) => setRelated(all.filter((x) => x.slug !== slug).slice(0, 4)));
         }
       })
       .catch(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
   const isWishlisted = wishlistItems.some((i) => i.slug === slug);
@@ -87,6 +96,11 @@ export default function ProductPage({ params }: Props) {
     for (let i = 0; i < qty; i++) addItem(product);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
+  };
+
+  const handleBuyNow = () => {
+    setBuyNow(product, qty);
+    router.push('/checkout');
   };
 
   const images = product.images?.length ? product.images : [];
@@ -252,7 +266,7 @@ export default function ProductPage({ params }: Props) {
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold transition-all ${
+                className={`flex flex-1 min-w-[140px] items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold transition-all ${
                   added
                     ? 'bg-green-600 text-white'
                     : 'bg-stone-900 text-white hover:bg-brand-700 shadow-card'
@@ -263,6 +277,14 @@ export default function ProductPage({ params }: Props) {
                 ) : (
                   'Add to Cart'
                 )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleBuyNow}
+                className="flex flex-1 min-w-[140px] items-center justify-center gap-2 rounded-full bg-brand-600 py-3 text-sm font-semibold text-white shadow-card transition-all hover:bg-brand-700"
+              >
+                Buy Now
               </button>
 
               <button
@@ -335,6 +357,8 @@ export default function ProductPage({ params }: Props) {
             </div>
           </div>
         )}
+
+        <RecentlyViewed excludeSlug={slug} />
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import { Navbar } from '@/components/store/Navbar';
 import { Footer } from '@/components/store/Footer';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
+import { useRecentlyViewedStore } from '@/store/recentlyViewedStore';
 
 export function StoreShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -16,6 +17,7 @@ export function StoreShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     useCartStore.persist.rehydrate();
     useWishlistStore.persist.rehydrate();
+    useRecentlyViewedStore.persist.rehydrate();
   }, []);
 
   if (isAdmin) return <>{children}</>;

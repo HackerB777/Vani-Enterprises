@@ -118,3 +118,7 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
 export const STATUS_FLOW: OrderStatus[] = [
   'placed', 'confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered',
 ];
+
+/* Customers may only self-cancel before the order ships — once it's in
+   transit, cancellation has to go through support/logistics instead. */
+export const CANCELLABLE_STATUSES: OrderStatus[] = ['placed', 'confirmed', 'processing'];

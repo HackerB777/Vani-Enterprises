@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
+import { useBuyNowStore } from '@/store/buyNowStore';
 import type { IProduct } from '@/lib/models/Product';
 import { categoryGradients, getDiscountPercent } from '@/lib/products';
 
@@ -37,9 +39,11 @@ interface Props {
 }
 
 export function ProductCard({ product, compact = false }: Props) {
+  const router         = useRouter();
   const addItem       = useCartStore((s) => s.addItem);
   const toggleItem    = useWishlistStore((s) => s.toggleItem);
   const wishlistItems = useWishlistStore((s) => s.items);
+  const setBuyNow      = useBuyNowStore((s) => s.setBuyNow);
   const [added, setAdded] = useState(false);
 
   const isWishlisted = wishlistItems.some((i) => i.slug === product.slug);
@@ -54,6 +58,11 @@ export function ProductCard({ product, compact = false }: Props) {
     addItem(product);
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
+  }
+
+  function handleBuyNow() {
+    setBuyNow(product);
+    router.push('/checkout');
   }
 
   return (
@@ -183,18 +192,27 @@ export function ProductCard({ product, compact = false }: Props) {
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Add to Cart button */}
-        <button
-          type="button"
-          onClick={handleAddToCart}
-          className={`mt-3 w-full rounded-lg py-2 text-sm font-semibold transition-all duration-200 ${
-            added
-              ? 'bg-green-600 text-white'
-              : 'bg-brand-600 text-white hover:bg-brand-700 active:scale-[0.98]'
-          }`}
-        >
-          {added ? '✓ Added to Cart' : 'Add to Cart'}
-        </button>
+        {/* Add to Cart / Buy Now */}
+        <div className="mt-3 flex gap-2">
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            className={`flex-1 rounded-lg py-2 text-xs sm:text-sm font-semibold transition-all duration-200 ${
+              added
+                ? 'bg-green-600 text-white'
+                : 'border border-stone-300 text-stone-700 hover:border-brand-400 hover:text-brand-700'
+            }`}
+          >
+            {added ? '✓ Added' : 'Add to Cart'}
+          </button>
+          <button
+            type="button"
+            onClick={handleBuyNow}
+            className="flex-1 rounded-lg bg-brand-600 py-2 text-xs sm:text-sm font-semibold text-white transition-all duration-200 hover:bg-brand-700 active:scale-[0.98]"
+          >
+            Buy Now
+          </button>
+        </div>
       </div>
     </article>
   );

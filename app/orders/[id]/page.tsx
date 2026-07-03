@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { CANCELLABLE_STATUSES } from '@/lib/orders';
 
 interface OrderItem {
   product: { slug: string; name: string; price: number };
@@ -80,6 +81,8 @@ export default function OrderDetailPage() {
   const [order, setOrder]   = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState('');
 
   useEffect(() => {
     const id = params?.id as string;
@@ -124,6 +127,22 @@ export default function OrderDetailPage() {
       if (unsubscribe) unsubscribe();
     };
   }, [params]);
+
+  async function handleCancelOrder() {
+    if (!order) return;
+    if (!window.confirm('Are you sure you want to cancel this order?')) return;
+    setCancelling(true); setCancelError('');
+    try {
+      const res  = await fetch(`/api/orders/${order.id}/cancel`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Unable to cancel order');
+      setOrder(data.order);
+    } catch (err: unknown) {
+      setCancelError(err instanceof Error ? err.message : 'Unable to cancel order');
+    } finally {
+      setCancelling(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -278,6 +297,20 @@ export default function OrderDetailPage() {
                 <p>Status: <span className={`font-medium ${order.paymentStatus === 'paid' ? 'text-green-700' : 'text-amber-700'}`}>{order.paymentStatus}</span></p>
               </div>
             </div>
+
+            {CANCELLABLE_STATUSES.includes(order.status as typeof CANCELLABLE_STATUSES[number]) && (
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={handleCancelOrder}
+                  disabled={cancelling}
+                  className="flex w-full items-center justify-center gap-2 rounded-full border border-red-200 bg-red-50 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-60"
+                >
+                  {cancelling ? 'Cancelling…' : 'Cancel Order'}
+                </button>
+                {cancelError && <p className="text-center text-xs font-medium text-red-600">{cancelError}</p>}
+              </div>
+            )}
 
             <WhatsAppButton order={order} />
 

@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useCartStore } from '@/store/cartStore';
+import { useBuyNowStore } from '@/store/buyNowStore';
 import type { AddressRecord } from '@/lib/addresses';
 import { INDIAN_STATES } from '@/lib/states';
 import { lookupPincode } from '@/lib/pincode';
@@ -50,8 +51,11 @@ function loadRazorpayScript(): Promise<void> {
 export default function CheckoutPage() {
   const router    = useRouter();
   const { data: session, status } = useSession();
-  const items     = useCartStore((s) => s.items);
-  const clearCart = useCartStore((s) => s.clearCart);
+  const cartItems  = useCartStore((s) => s.items);
+  const clearCart  = useCartStore((s) => s.clearCart);
+  const buyNowItem = useBuyNowStore((s) => s.item);
+  const clearBuyNow = useBuyNowStore((s) => s.clearBuyNow);
+  const items = useMemo(() => (buyNowItem ? [buyNowItem] : cartItems), [buyNowItem, cartItems]);
   const [addr, setAddr]               = useState<Address>(EMPTY);
   const [payment, setPayment]         = useState<'razorpay' | 'cod'>('razorpay');
   const [couponInput, setCouponInput] = useState('');
@@ -99,6 +103,14 @@ export default function CheckoutPage() {
       .finally(() => setAddressesLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
+
+  /* Clear the one-shot Buy Now selection whenever checkout is left, so a
+     later visit to /checkout falls back to the real cart instead of
+     re-showing a stale single-item order. */
+  useEffect(() => {
+    return () => clearBuyNow();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const subtotal = useMemo(() => items.reduce((s, i) => s + i.product.price * i.quantity, 0), [items]);
   const shipping = subtotal >= 999 || subtotal === 0 ? 0 : 99;
@@ -206,7 +218,7 @@ export default function CheckoutPage() {
 
       // 2. COD — done
       if (payment === 'cod') {
-        clearCart();
+        if (buyNowItem) clearBuyNow(); else clearCart();
         router.push(`/orders/${order.id}`);
         return;
       }
@@ -257,7 +269,7 @@ export default function CheckoutPage() {
               setError(verifyData.error || 'Payment verification failed.');
               return;
             }
-            clearCart();
+            if (buyNowItem) clearBuyNow(); else clearCart();
             router.push(`/orders/${order.id}`);
           } catch (verifyError: unknown) {
             setError(verifyError instanceof Error ? verifyError.message : 'Payment verification failed.');
