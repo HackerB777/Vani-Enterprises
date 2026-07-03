@@ -1,12 +1,14 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useCartStore } from '@/store/cartStore';
-
-const STATES = ['Andhra Pradesh', 'Karnataka', 'Kerala', 'Maharashtra', 'Rajasthan', 'Tamil Nadu', 'Telangana', 'Uttar Pradesh', 'West Bengal', 'Delhi', 'Other'];
+import type { AddressRecord } from '@/lib/addresses';
+import { INDIAN_STATES } from '@/lib/states';
+import { lookupPincode } from '@/lib/pincode';
 
 interface Address {
   name: string; email: string; phone: string;
@@ -47,6 +49,7 @@ function loadRazorpayScript(): Promise<void> {
 
 export default function CheckoutPage() {
   const router    = useRouter();
+  const { data: session, status } = useSession();
   const items     = useCartStore((s) => s.items);
   const clearCart = useCartStore((s) => s.clearCart);
   const [addr, setAddr]               = useState<Address>(EMPTY);
@@ -59,6 +62,43 @@ export default function CheckoutPage() {
   const [applying, setApplying]   = useState(false);
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
+
+  const [savedAddresses, setSavedAddresses]   = useState<AddressRecord[]>([]);
+  const [addressesLoading, setAddressesLoading] = useState(true);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [useNewAddress, setUseNewAddress]     = useState(false);
+  const [saveNewAddress, setSaveNewAddress]   = useState(true);
+  const [pincodeLoading, setPincodeLoading]   = useState(false);
+
+  useEffect(() => {
+    if (status === 'loading') return;
+    if (status !== 'authenticated') { setAddressesLoading(false); setUseNewAddress(true); return; }
+
+    if (session?.user?.email) {
+      setAddr((a) => (a.email ? a : { ...a, email: session.user!.email! }));
+    }
+
+    fetch('/api/addresses')
+      .then((r) => r.json())
+      .then((data: AddressRecord[]) => {
+        const list = Array.isArray(data) ? data : [];
+        setSavedAddresses(list);
+        if (list.length > 0) {
+          const def = list[0];
+          setSelectedAddressId(def.id);
+          setAddr((a) => ({
+            ...a,
+            name: def.name, phone: def.phone, addressLine1: def.addressLine1,
+            city: def.city, state: def.state, pincode: def.pincode,
+          }));
+        } else {
+          setUseNewAddress(true);
+        }
+      })
+      .catch(() => setUseNewAddress(true))
+      .finally(() => setAddressesLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   const subtotal = useMemo(() => items.reduce((s, i) => s + i.product.price * i.quantity, 0), [items]);
   const shipping = subtotal >= 999 || subtotal === 0 ? 0 : 99;
@@ -97,11 +137,50 @@ export default function CheckoutPage() {
 
   const set = (field: keyof Address) => (val: string) => setAddr((a) => ({ ...a, [field]: val }));
 
+  function selectAddress(record: AddressRecord) {
+    setSelectedAddressId(record.id);
+    setUseNewAddress(false);
+    setAddr((a) => ({
+      ...a,
+      name: record.name, phone: record.phone, addressLine1: record.addressLine1,
+      city: record.city, state: record.state, pincode: record.pincode,
+    }));
+  }
+
+  function startNewAddress() {
+    setUseNewAddress(true);
+    setSelectedAddressId(null);
+    setAddr((a) => ({ ...EMPTY, email: a.email }));
+  }
+
+  async function handlePincodeChange(value: string) {
+    const digits = value.replace(/\D/g, '');
+    set('pincode')(digits);
+    if (/^\d{6}$/.test(digits)) {
+      setPincodeLoading(true);
+      const result = await lookupPincode(digits);
+      if (result) setAddr((a) => ({ ...a, city: result.city, state: result.state }));
+      setPincodeLoading(false);
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (items.length === 0) { setError('Your cart is empty.'); return; }
     const missing = (Object.keys(EMPTY) as (keyof Address)[]).find((k) => !addr[k].trim());
     if (missing) { setError('Please fill in all required fields.'); return; }
+
+    if (status === 'authenticated' && useNewAddress && saveNewAddress) {
+      fetch('/api/addresses', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          label: 'Home', name: addr.name, phone: addr.phone, addressLine1: addr.addressLine1,
+          city: addr.city, state: addr.state, pincode: addr.pincode,
+          isDefault: savedAddresses.length === 0,
+        }),
+      }).catch(() => {});
+    }
 
     setLoading(true); setError('');
     try {
@@ -223,31 +302,89 @@ export default function CheckoutPage() {
                 {/* Shipping */}
                 <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-soft">
                   <h2 className="font-display text-lg font-bold text-stone-900 mb-5">Shipping Details</h2>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Full Name"     value={addr.name}    onChange={set('name')}    placeholder="Priya Sharma" />
-                    <Field label="Email Address" type="email" value={addr.email}   onChange={set('email')}   placeholder="priya@example.com" />
-                    <Field label="Phone Number"  type="tel"  value={addr.phone}   onChange={set('phone')}   placeholder="9999999999" />
-                    <Field label="Pincode"       value={addr.pincode} onChange={set('pincode')} placeholder="600001" />
-                  </div>
-                  <div className="mt-4">
-                    <Field label="Address Line 1" value={addr.addressLine1} onChange={set('addressLine1')} placeholder="Flat 4B, ABC Apartments, MG Road" />
-                  </div>
-                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                    <Field label="City" value={addr.city} onChange={set('city')} placeholder="Chennai" />
-                    <label className="block">
-                      <span className="mb-1.5 block text-xs font-semibold text-stone-700">State<span className="ml-0.5 text-red-500">*</span></span>
-                      <select
-                        aria-label="Select state"
-                        value={addr.state}
-                        onChange={(e) => set('state')(e.target.value)}
-                        className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white"
-                        required
-                      >
-                        <option value="">Select state</option>
-                        {STATES.map((s) => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </label>
-                  </div>
+
+                  {addressesLoading ? (
+                    <div className="space-y-3">
+                      {[1, 2].map((n) => <div key={n} className="h-16 animate-pulse rounded-xl bg-stone-100" />)}
+                    </div>
+                  ) : !useNewAddress && savedAddresses.length > 0 ? (
+                    <div className="space-y-3">
+                      {savedAddresses.map((a) => (
+                        <label
+                          key={a.id}
+                          className={`flex cursor-pointer items-start gap-3 rounded-xl border-2 p-4 transition-all ${
+                            selectedAddressId === a.id ? 'border-brand-600 bg-brand-50' : 'border-stone-200 hover:border-stone-300'
+                          }`}
+                        >
+                          <input
+                            type="radio" name="saved-address" className="mt-1 accent-brand-600"
+                            checked={selectedAddressId === a.id} onChange={() => selectAddress(a)}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-stone-500">{a.label}</span>
+                              {a.isDefault && <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-brand-700">Default</span>}
+                            </div>
+                            <p className="mt-1 font-semibold text-stone-900 text-sm">{a.name}</p>
+                            <p className="text-sm text-stone-600">{a.addressLine1}, {a.city}, {a.state} – {a.pincode}</p>
+                            <p className="text-xs text-stone-400 mt-0.5">📞 {a.phone}</p>
+                          </div>
+                        </label>
+                      ))}
+                      <button type="button" onClick={startNewAddress} className="text-sm font-semibold text-brand-600 hover:underline">
+                        + Use a different address
+                      </button>
+                      <div className="pt-2">
+                        <Field label="Email Address" type="email" value={addr.email} onChange={set('email')} placeholder="priya@example.com" />
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {savedAddresses.length > 0 && (
+                        <button type="button" onClick={() => setUseNewAddress(false)} className="mb-4 text-sm font-semibold text-brand-600 hover:underline">
+                          ← Use a saved address
+                        </button>
+                      )}
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <Field label="Full Name"     value={addr.name}    onChange={set('name')}    placeholder="Priya Sharma" />
+                        <Field label="Email Address" type="email" value={addr.email}   onChange={set('email')}   placeholder="priya@example.com" />
+                        <Field label="Phone Number"  type="tel"  value={addr.phone}   onChange={set('phone')}   placeholder="9999999999" />
+                        <div>
+                          <Field label="Pincode" value={addr.pincode} onChange={handlePincodeChange} placeholder="600001" />
+                          {pincodeLoading && <span className="mt-1 block text-[11px] text-stone-400">Looking up city &amp; state…</span>}
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <Field label="Address Line 1" value={addr.addressLine1} onChange={set('addressLine1')} placeholder="Flat 4B, ABC Apartments, MG Road" />
+                      </div>
+                      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                        <Field label="City" value={addr.city} onChange={set('city')} placeholder="Chennai" />
+                        <label className="block">
+                          <span className="mb-1.5 block text-xs font-semibold text-stone-700">State<span className="ml-0.5 text-red-500">*</span></span>
+                          <select
+                            aria-label="Select state"
+                            value={addr.state}
+                            onChange={(e) => set('state')(e.target.value)}
+                            className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white"
+                            required
+                          >
+                            <option value="">Select state</option>
+                            {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </label>
+                      </div>
+                      {status === 'authenticated' && (
+                        <label className="mt-4 flex cursor-pointer items-center gap-2.5 text-sm text-stone-700">
+                          <input
+                            type="checkbox" checked={saveNewAddress}
+                            onChange={(e) => setSaveNewAddress(e.target.checked)}
+                            className="h-4 w-4 rounded border-stone-300 accent-brand-600"
+                          />
+                          Save this address to my account for faster checkout next time
+                        </label>
+                      )}
+                    </>
+                  )}
                 </div>
 
                 {/* Payment */}

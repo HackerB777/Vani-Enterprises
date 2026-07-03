@@ -8,19 +8,17 @@ import Image from 'next/image';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { useCartStore } from '@/store/cartStore';
 import type { IProduct } from '@/lib/models/Product';
+import type { AddressRecord } from '@/lib/addresses';
+import { INDIAN_STATES } from '@/lib/states';
+import { lookupPincode } from '@/lib/pincode';
 
 /* ── Types ──────────────────────────────────────────────── */
 interface UserProfile { id: string; name: string; email: string; phone: string; role: string; createdAt: string; }
 interface OrderSummary { id: string; total: number; status: string; createdAt: string; items?: { product: { name: string } }[]; }
-interface AddressRecord {
-  id: string; label: string; name: string; phone: string;
-  addressLine1: string; city: string; state: string; pincode: string; isDefault: boolean;
-}
 
 type Tab = 'overview' | 'orders' | 'addresses' | 'wishlist' | 'profile' | 'security';
 
 const EMPTY_ADDR = { label: 'Home', name: '', phone: '', addressLine1: '', city: '', state: '', pincode: '', isDefault: false };
-const STATES = ['Andhra Pradesh', 'Karnataka', 'Kerala', 'Maharashtra', 'Rajasthan', 'Tamil Nadu', 'Telangana', 'Uttar Pradesh', 'West Bengal', 'Delhi', 'Other'];
 
 /* ── Helpers ─────────────────────────────────────────────── */
 const STATUS_COLORS: Record<string, string> = {
@@ -92,6 +90,7 @@ export default function AccountPage() {
   const [addrForm, setAddrForm]         = useState(EMPTY_ADDR);
   const [addrSaving, setAddrSaving]     = useState(false);
   const [addrErr, setAddrErr]           = useState('');
+  const [pincodeLoading, setPincodeLoading] = useState(false);
 
   /* wishlist */
   const wishlistItems  = useWishlistStore((s) => s.items);
@@ -160,6 +159,16 @@ export default function AccountPage() {
     setAddrForm({ label: addr.label, name: addr.name, phone: addr.phone, addressLine1: addr.addressLine1, city: addr.city, state: addr.state, pincode: addr.pincode, isDefault: addr.isDefault });
     setAddrErr('');
     setShowAddrForm(true);
+  }
+
+  async function handlePincodeChange(value: string) {
+    setAddrForm((f) => ({ ...f, pincode: value }));
+    if (/^\d{6}$/.test(value)) {
+      setPincodeLoading(true);
+      const result = await lookupPincode(value);
+      if (result) setAddrForm((f) => ({ ...f, city: result.city, state: result.state }));
+      setPincodeLoading(false);
+    }
   }
 
   async function saveAddress(e: React.FormEvent) {
@@ -367,7 +376,7 @@ export default function AccountPage() {
               <form onSubmit={saveAddress} className="rounded-2xl border border-brand-200 bg-white p-6 shadow-sm space-y-4">
                 <div className="flex items-center justify-between mb-1">
                   <h3 className="font-semibold text-stone-900">{editingAddr ? 'Edit Address' : 'New Address'}</h3>
-                  <button type="button" onClick={() => setShowAddrForm(false)} className="text-stone-400 hover:text-stone-700">
+                  <button type="button" onClick={() => setShowAddrForm(false)} aria-label="Close" className="text-stone-400 hover:text-stone-700">
                     <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                   </button>
                 </div>
@@ -403,8 +412,9 @@ export default function AccountPage() {
                   {/* Pincode */}
                   <label className="block">
                     <span className="mb-1.5 block text-xs font-semibold text-stone-600">Pincode *</span>
-                    <input required type="text" value={addrForm.pincode} onChange={(e) => setAddrForm((f) => ({ ...f, pincode: e.target.value }))} placeholder="600001"
+                    <input required type="text" inputMode="numeric" maxLength={6} value={addrForm.pincode} onChange={(e) => handlePincodeChange(e.target.value.replace(/\D/g, ''))} placeholder="600001"
                       className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none transition focus:border-brand-400" />
+                    {pincodeLoading && <span className="mt-1 block text-[11px] text-stone-400">Looking up city &amp; state…</span>}
                   </label>
                 </div>
 
@@ -429,7 +439,7 @@ export default function AccountPage() {
                     <select required value={addrForm.state} onChange={(e) => setAddrForm((f) => ({ ...f, state: e.target.value }))} aria-label="State"
                       className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none transition focus:border-brand-400">
                       <option value="">Select state</option>
-                      {STATES.map((s) => <option key={s}>{s}</option>)}
+                      {INDIAN_STATES.map((s) => <option key={s}>{s}</option>)}
                     </select>
                   </label>
                 </div>
