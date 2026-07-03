@@ -17,6 +17,16 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = getSupabaseAdmin();
+
+    const isAdmin = (session.user as { role?: string }).role === 'admin';
+    if (!isAdmin) {
+      const { data: order } = await supabase.from('orders').select('userId').eq('id', orderId).single();
+      const userId = (session.user as { id?: string }).id;
+      if (!order || order.userId !== userId) {
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      }
+    }
+
     const { data, error } = await supabase
       .from('parcel_events')
       .select('*')

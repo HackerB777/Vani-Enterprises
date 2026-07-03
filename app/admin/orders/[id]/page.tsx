@@ -3,7 +3,12 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { STATUS_LABELS, STATUS_FLOW, type OrderStatus, type Order } from '@/lib/orders';
+import { STATUS_LABELS, STATUS_FLOW, type OrderStatus, type Order, type ParcelEvent, type Shipment } from '@/lib/orders';
+import { ParcelTrackingTimeline } from '@/components/store/ParcelTrackingTimeline';
+
+const EVENT_STATUS_PRESETS = [
+  'Picked up from warehouse', 'In transit', 'Arrived at hub', 'Out for delivery', 'Delivered', 'Delivery attempt failed', 'Returned to sender',
+];
 
 function buildWhatsAppText(order: Order): string {
   const shortId = order.id.slice(-8).toUpperCase();
@@ -60,7 +65,47 @@ export default function AdminOrderDetail() {
   const [courier, setCourier]         = useState('');
   const [notes, setNotes]             = useState('');
 
+  const [parcelEvents, setParcelEvents] = useState<ParcelEvent[]>([]);
+  const [shipment, setShipment]         = useState<Shipment | null>(null);
+  const [eventStatus, setEventStatus]   = useState(EVENT_STATUS_PRESETS[0]);
+  const [eventLocation, setEventLocation] = useState('');
+  const [eventDesc, setEventDesc]         = useState('');
+  const [addingEvent, setAddingEvent]     = useState(false);
+  const [eventError, setEventError]       = useState('');
+
+  function loadParcelData() {
+    fetch(`/api/parcel-events?orderId=${id}`)
+      .then((r) => r.ok ? r.json() : { events: [] })
+      .then((data) => setParcelEvents(data.events ?? []))
+      .catch(() => {});
+    fetch(`/api/shipments?orderId=${id}`)
+      .then((r) => r.ok ? r.json() : { shipments: [] })
+      .then((data) => setShipment(data.shipments?.[0] ?? null))
+      .catch(() => {});
+  }
+
+  async function handleAddEvent(e: React.FormEvent) {
+    e.preventDefault();
+    setAddingEvent(true); setEventError('');
+    try {
+      const res  = await fetch('/api/parcel-events', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ orderId: id, status: eventStatus, location: eventLocation || undefined, description: eventDesc || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to add tracking update');
+      setParcelEvents((prev) => [...prev, data.event]);
+      setEventLocation(''); setEventDesc('');
+    } catch (err: unknown) {
+      setEventError(err instanceof Error ? err.message : 'Failed to add tracking update');
+    } finally {
+      setAddingEvent(false);
+    }
+  }
+
   useEffect(() => {
+    loadParcelData();
     fetch(`/api/orders/${id}`)
       .then((r) => r.json())
       .then((data) => {
@@ -382,6 +427,54 @@ export default function AdminOrderDetail() {
               <p className="mt-1 text-stone-400">{order.shippingAddress.phone}</p>
               <p className="text-stone-400">{order.shippingAddress.email}</p>
             </address>
+          </div>
+
+          {/* Live parcel tracking */}
+          <ParcelTrackingTimeline events={parcelEvents} shipment={shipment} />
+
+          <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-card">
+            <p className="font-semibold text-stone-700 mb-3">Add Tracking Update</p>
+            <form onSubmit={handleAddEvent} className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="event-status" className="block text-xs font-semibold text-stone-500 mb-1.5">Status</label>
+                  <select
+                    id="event-status"
+                    value={eventStatus}
+                    onChange={(e) => setEventStatus(e.target.value)}
+                    className="w-full rounded-xl border border-stone-200 px-3 py-2.5 text-sm outline-none transition focus:border-brand-400"
+                  >
+                    {EVENT_STATUS_PRESETS.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="event-location" className="block text-xs font-semibold text-stone-500 mb-1.5">Location</label>
+                  <input
+                    id="event-location" type="text" value={eventLocation}
+                    onChange={(e) => setEventLocation(e.target.value)}
+                    placeholder="e.g. Chennai Hub"
+                    className="w-full rounded-xl border border-stone-200 px-3 py-2.5 text-sm outline-none transition focus:border-brand-400"
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="event-desc" className="block text-xs font-semibold text-stone-500 mb-1.5">Note (optional)</label>
+                <input
+                  id="event-desc" type="text" value={eventDesc}
+                  onChange={(e) => setEventDesc(e.target.value)}
+                  placeholder="e.g. Package scanned at sorting facility"
+                  className="w-full rounded-xl border border-stone-200 px-3 py-2.5 text-sm outline-none transition focus:border-brand-400"
+                />
+              </div>
+              {eventError && <p className="text-sm font-medium text-red-600">{eventError}</p>}
+              <button
+                type="submit"
+                disabled={addingEvent}
+                className="w-full rounded-xl bg-brand-600 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
+              >
+                {addingEvent ? 'Adding…' : 'Add Update'}
+              </button>
+            </form>
           </div>
 
         </div>

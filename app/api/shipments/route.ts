@@ -14,6 +14,19 @@ export async function GET(request: NextRequest) {
     const orderId = url.searchParams.get('orderId');
 
     const supabase = getSupabaseAdmin();
+    const isAdmin = (session.user as { role?: string }).role === 'admin';
+
+    if (!isAdmin) {
+      if (!orderId) {
+        return NextResponse.json({ error: 'Order ID required' }, { status: 400 });
+      }
+      const { data: order } = await supabase.from('orders').select('userId').eq('id', orderId).single();
+      const userId = (session.user as { id?: string }).id;
+      if (!order || order.userId !== userId) {
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      }
+    }
+
     let q = supabase.from('shipments').select('*');
 
     if (orderId) {

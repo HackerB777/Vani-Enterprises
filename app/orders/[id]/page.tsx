@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { CANCELLABLE_STATUSES } from '@/lib/orders';
+import type { ParcelEvent, Shipment } from '@/lib/orders';
+import { ParcelTrackingTimeline } from '@/components/store/ParcelTrackingTimeline';
 
 interface OrderItem {
   product: { slug: string; name: string; price: number };
@@ -83,6 +85,8 @@ export default function OrderDetailPage() {
   const [error, setError]     = useState('');
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState('');
+  const [parcelEvents, setParcelEvents] = useState<ParcelEvent[]>([]);
+  const [shipment, setShipment]         = useState<Shipment | null>(null);
 
   useEffect(() => {
     const id = params?.id as string;
@@ -97,6 +101,16 @@ export default function OrderDetailPage() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
 
+    fetch(`/api/parcel-events?orderId=${id}`)
+      .then((res) => res.ok ? res.json() : { events: [] })
+      .then((data) => setParcelEvents(data.events ?? []))
+      .catch(() => {});
+
+    fetch(`/api/shipments?orderId=${id}`)
+      .then((res) => res.ok ? res.json() : { shipments: [] })
+      .then((data) => setShipment(data.shipments?.[0] ?? null))
+      .catch(() => {});
+
     const initRealtime = async () => {
       try {
         const { createClient } = await import('@supabase/supabase-js');
@@ -109,6 +123,12 @@ export default function OrderDetailPage() {
           .channel(`orders:${id}`)
           .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${id}` }, (payload) => {
             setOrder(payload.new as Order);
+          })
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'parcel_events', filter: `orderId=eq.${id}` }, (payload) => {
+            setParcelEvents((prev) => [...prev, payload.new as ParcelEvent]);
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'shipments', filter: `orderId=eq.${id}` }, (payload) => {
+            setShipment(payload.new as Shipment);
           })
           .subscribe();
 
@@ -235,6 +255,8 @@ export default function OrderDetailPage() {
 
         <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
           <div className="space-y-6">
+            {!isCancelled && <ParcelTrackingTimeline events={parcelEvents} shipment={shipment} />}
+
             {/* Items */}
             <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-soft">
               <h2 className="font-display font-bold text-stone-900 mb-4">Items Ordered</h2>
