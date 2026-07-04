@@ -273,6 +273,7 @@ export default function ShopPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search products…"
+                aria-label="Search products"
                 className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-900 outline-none transition focus:border-brand-400 focus:bg-white"
               />
             </div>

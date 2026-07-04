@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { StoreShell } from '@/components/StoreShell';
@@ -28,6 +28,11 @@ export const metadata: Metadata = {
   description:
     'Shop electronics, gifts, home decor, kitchen & lifestyle products online. Free shipping on orders above ₹999. Serving all of India.',
   keywords: ['electronics', 'home decor', 'gifts', 'kitchenware', 'Chennai', 'India shopping', 'online store'],
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

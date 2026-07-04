@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
@@ -52,14 +53,12 @@ function Sidebar({
       <div className="flex h-16 items-center border-b border-stone-800 px-3">
         {collapsed ? (
           <div className="transform-gpu mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-white">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Vani Enterprises" className="h-full w-full rounded-full object-cover object-top" />
+            <Image src="/logo.png" alt="Vani Enterprises" width={48} height={48} className="h-full w-full rounded-full object-cover object-top" />
           </div>
         ) : (
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="transform-gpu flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-white">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="Vani Enterprises" className="h-full w-full rounded-full object-cover object-top" />
+              <Image src="/logo.png" alt="Vani Enterprises" width={48} height={48} className="h-full w-full rounded-full object-cover object-top" />
             </div>
             <div className="min-w-0">
               <p className="text-sm font-bold text-white leading-tight truncate">Vani</p>

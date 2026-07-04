@@ -119,6 +119,7 @@ export default function AdminInventory() {
           <input
             type="text"
             placeholder="Search products..."
+            aria-label="Search products"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-xl border border-stone-200 bg-white py-2.5 pl-9 pr-4 text-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100"

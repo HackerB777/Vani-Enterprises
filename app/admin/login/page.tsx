@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 
@@ -37,8 +38,7 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <div className="mx-auto flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-white shadow-lg">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Vani Enterprises" className="h-full w-full rounded-full object-cover object-top" />
+            <Image src="/logo.png" alt="Vani Enterprises" width={80} height={80} className="h-full w-full rounded-full object-cover object-top" />
           </div>
           <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.35em] text-stone-500">Admin Panel</p>
         </div>

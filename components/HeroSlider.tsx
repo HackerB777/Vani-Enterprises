@@ -217,7 +217,8 @@ export function HeroSlider() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search products…"
-                  className="flex-1 px-5 py-3.5 text-sm text-stone-100 placeholder-stone-500 outline-none bg-transparent"
+                  aria-label="Search products"
+                  className="flex-1 min-w-0 px-5 py-3.5 text-sm text-stone-100 placeholder-stone-500 outline-none bg-transparent"
                 />
                 <button
                   type="submit"

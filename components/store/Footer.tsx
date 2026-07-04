@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { NewsletterForm } from './NewsletterForm';
 
 function WhatsAppIcon() {
@@ -72,8 +73,7 @@ export function Footer() {
           {/* Brand */}
           <div>
             <Link href="/" aria-label="Vani Enterprises – Home" className="inline-block">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="Vani Enterprises" loading="lazy" className="logo-screen h-14 w-auto" />
+              <Image src="/logo.png" alt="Vani Enterprises" width={56} height={56} className="h-14 w-14 object-contain" />
             </Link>
             <p className="mt-4 text-sm leading-relaxed text-stone-500">
               Exclusive home collections crafted with care, delivered from Chennai to your doorstep across India.

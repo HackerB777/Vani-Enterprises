@@ -287,6 +287,7 @@ export default function AdminCoupons() {
                           <button
                             type="button"
                             onClick={() => openEdit(c)}
+                            aria-label={`Edit coupon ${c.code}`}
                             className="rounded-lg bg-stone-100 p-1.5 text-stone-500 transition hover:bg-brand-50 hover:text-brand-600"
                           >
                             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -298,6 +299,7 @@ export default function AdminCoupons() {
                             type="button"
                             onClick={() => handleDelete(c.code)}
                             disabled={deleting === c.code}
+                            aria-label={`Delete coupon ${c.code}`}
                             className="rounded-lg bg-stone-100 p-1.5 text-stone-400 transition hover:bg-red-50 hover:text-red-500 disabled:opacity-40"
                           >
                             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -324,7 +326,7 @@ export default function AdminCoupons() {
               <h2 className="text-base font-bold text-stone-900">
                 {editing ? `Edit Coupon — ${editing.code}` : 'Create New Coupon'}
               </h2>
-              <button type="button" onClick={() => setShowForm(false)} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100">
+              <button type="button" onClick={() => setShowForm(false)} aria-label="Close" className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100">
                 <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -336,8 +338,9 @@ export default function AdminCoupons() {
               {/* Coupon code */}
               {!editing && (
                 <div>
-                  <label className="block text-xs font-semibold text-stone-600 mb-1">Coupon Code *</label>
+                  <label htmlFor="coupon-code" className="block text-xs font-semibold text-stone-600 mb-1">Coupon Code *</label>
                   <input
+                    id="coupon-code"
                     type="text"
                     required
                     value={form.code}
@@ -351,8 +354,9 @@ export default function AdminCoupons() {
               {/* Discount type + value */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-600 mb-1">Discount Type *</label>
+                  <label htmlFor="coupon-discount-type" className="block text-xs font-semibold text-stone-600 mb-1">Discount Type *</label>
                   <select
+                    id="coupon-discount-type"
                     value={form.discountType}
                     onChange={(e) => setForm((f) => ({ ...f, discountType: e.target.value as 'percentage' | 'flat' }))}
                     className="w-full rounded-xl border border-stone-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
@@ -362,10 +366,11 @@ export default function AdminCoupons() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-stone-600 mb-1">
+                  <label htmlFor="coupon-discount-value" className="block text-xs font-semibold text-stone-600 mb-1">
                     {form.discountType === 'percentage' ? 'Percentage (%)' : 'Amount (₹)'} *
                   </label>
                   <input
+                    id="coupon-discount-value"
                     type="number"
                     required
                     min="1"
@@ -381,8 +386,9 @@ export default function AdminCoupons() {
               {/* Min order + max uses */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-600 mb-1">Min Order Amount (₹)</label>
+                  <label htmlFor="coupon-min-order" className="block text-xs font-semibold text-stone-600 mb-1">Min Order Amount (₹)</label>
                   <input
+                    id="coupon-min-order"
                     type="number" min="0"
                     value={form.minOrderAmount}
                     onChange={(e) => setForm((f) => ({ ...f, minOrderAmount: e.target.value }))}
@@ -391,8 +397,9 @@ export default function AdminCoupons() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-stone-600 mb-1">Max Uses (blank = unlimited)</label>
+                  <label htmlFor="coupon-max-uses" className="block text-xs font-semibold text-stone-600 mb-1">Max Uses (blank = unlimited)</label>
                   <input
+                    id="coupon-max-uses"
                     type="number" min="1"
                     value={form.maxUses}
                     onChange={(e) => setForm((f) => ({ ...f, maxUses: e.target.value }))}
@@ -449,6 +456,9 @@ export default function AdminCoupons() {
                 <button
                   type="button"
                   onClick={() => setForm((f) => ({ ...f, isActive: !f.isActive }))}
+                  role="switch"
+                  aria-checked={form.isActive}
+                  aria-label="Coupon active"
                   className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors ${form.isActive ? 'bg-brand-600' : 'bg-stone-300'}`}
                 >
                   <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform ${form.isActive ? 'translate-x-5' : 'translate-x-0'}`} />

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { categories } from '@/lib/products';
 import type { IProduct } from '@/lib/models/Product';
 
@@ -89,6 +90,7 @@ export default function AdminProducts() {
           <input
             type="text"
             placeholder="Search products..."
+            aria-label="Search products"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-xl border border-stone-200 bg-white py-2.5 pl-9 pr-4 text-sm outline-none transition focus:border-brand-400"
@@ -145,8 +147,7 @@ export default function AdminProducts() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         {product.images?.[0] ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={product.images[0]} alt={product.name} className="h-10 w-10 flex-shrink-0 rounded-lg object-cover" />
+                          <Image src={product.images[0]} alt={product.name} width={40} height={40} className="h-10 w-10 flex-shrink-0 rounded-lg object-cover" />
                         ) : (
                           <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-stone-100 flex items-center justify-center text-stone-300">
                             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

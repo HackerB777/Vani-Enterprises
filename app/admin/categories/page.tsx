@@ -297,7 +297,7 @@ export default function AdminCategories() {
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <input type="text" placeholder="Search categories..." value={search} onChange={(e) => setSearch(e.target.value)}
+          <input type="text" placeholder="Search categories..." aria-label="Search categories" value={search} onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-xl border border-stone-200 bg-white py-2.5 pl-9 pr-4 text-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100" />
         </div>
         <p className="text-sm text-stone-400 flex-shrink-0">

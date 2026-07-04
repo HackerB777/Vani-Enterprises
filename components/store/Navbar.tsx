@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
@@ -89,9 +90,15 @@ export function Navbar() {
 
           {/* Logo */}
           <Link href="/" aria-label="Vani Enterprises – Home" className="flex-shrink-0">
-            <div className="transform-gpu flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-white border border-stone-100">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="Vani Enterprises" loading="lazy" className="h-full w-full rounded-full object-cover object-top" />
+            <div className="transform-gpu flex h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 items-center justify-center overflow-hidden rounded-full bg-white border border-stone-100 flex-shrink-0">
+              <Image
+                src="/logo.png"
+                alt="Vani Enterprises"
+                width={64}
+                height={64}
+                priority
+                className="h-full w-full rounded-full object-cover object-top flex-shrink-0"
+              />
             </div>
           </Link>
 
@@ -109,6 +116,7 @@ export function Navbar() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleSearchKey}
               placeholder="Search products…"
+              aria-label="Search products"
               className="flex-1 min-w-0 px-3 py-2.5 sm:px-4 text-sm text-stone-800 placeholder-stone-400 outline-none bg-transparent"
             />
             <button
@@ -258,9 +266,14 @@ export function Navbar() {
             {/* Drawer header */}
             <div className="flex items-center justify-between border-b border-stone-100 bg-stone-900 px-5 py-4">
               <Link href="/" onClick={() => setMenuOpen(false)}>
-                <div className="transform-gpu flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-white border border-stone-100">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/logo.png" alt="Vani Enterprises" loading="lazy" className="h-full w-full rounded-full object-cover object-top" />
+                <div className="transform-gpu flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center overflow-hidden rounded-full bg-white border border-stone-100 flex-shrink-0">
+                  <Image
+                    src="/logo.png"
+                    alt="Vani Enterprises"
+                    width={56}
+                    height={56}
+                    className="h-full w-full rounded-full object-cover object-top flex-shrink-0"
+                  />
                 </div>
               </Link>
               <button type="button" onClick={closeMenu} aria-label="Close menu"
@@ -278,6 +291,7 @@ export function Navbar() {
                   onChange={(e) => setMobileQuery(e.target.value)}
                   onKeyDown={handleMobileSearchKey}
                   placeholder="Search products…"
+                  aria-label="Search products"
                   className="flex-1 bg-transparent px-4 py-2.5 text-sm text-stone-800 outline-none placeholder:text-stone-400"
                 />
                 <button type="button" aria-label="Search" onClick={() => { goSearch(mobileQuery); setMobileQuery(''); setMenuOpen(false); }}
