@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { CANCELLABLE_STATUSES } from '@/lib/orders';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { errorMessage } from '@/lib/errors';
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -74,7 +75,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     if (updateError) throw updateError;
     return NextResponse.json({ order: updated });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Failed to cancel order';
+    const msg = errorMessage(err, 'Failed to cancel order');
     console.error('POST /api/orders/[id]/cancel:', msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }

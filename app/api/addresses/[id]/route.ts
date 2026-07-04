@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { errorMessage } from '@/lib/errors';
 
 function getUserId(session: { user?: { id?: string } } | null): string | null {
   return session?.user?.id ?? null;
@@ -39,7 +40,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (error) throw error;
     return NextResponse.json(data);
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Failed to update address';
+    const msg = errorMessage(err, 'Failed to update address');
     console.error('PUT /api/addresses/[id]:', msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
@@ -64,7 +65,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
     if (error) throw error;
     return new NextResponse(null, { status: 204 });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Failed to delete address';
+    const msg = errorMessage(err, 'Failed to delete address');
     console.error('DELETE /api/addresses/[id]:', msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }

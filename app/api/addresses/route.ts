@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { errorMessage } from '@/lib/errors';
 
 function getUserId(session: { user?: { id?: string } } | null): string | null {
   return session?.user?.id ?? null;
@@ -24,7 +25,7 @@ export async function GET() {
     if (error) throw error;
     return NextResponse.json(data ?? []);
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Failed to fetch addresses';
+    const msg = errorMessage(err, 'Failed to fetch addresses');
     console.error('GET /api/addresses:', msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
     if (error) throw error;
     return NextResponse.json(data, { status: 201 });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Failed to create address';
+    const msg = errorMessage(err, 'Failed to create address');
     console.error('POST /api/addresses:', msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }

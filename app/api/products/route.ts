@@ -2,6 +2,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { errorMessage } from '@/lib/errors';
 
 export async function GET(request: NextRequest) {
   const supabase = getSupabaseAdmin();
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     if (error) throw error;
     return NextResponse.json(data, { status: 201 });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Failed to create product';
+    const msg = errorMessage(err, 'Failed to create product');
     console.error('POST /api/products:', msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { errorMessage } from '@/lib/errors';
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ shipments: data ?? [] });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Failed to fetch shipments';
+    const msg = errorMessage(err, 'Failed to fetch shipments');
     console.error('GET /api/shipments:', msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
@@ -125,7 +126,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ shipment: result }, { status: existingShipment ? 200 : 201 });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Failed to create shipment';
+    const msg = errorMessage(err, 'Failed to create shipment');
     console.error('POST /api/shipments:', msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }

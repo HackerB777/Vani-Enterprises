@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import type { OrderStatus } from '@/lib/orders';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { errorMessage } from '@/lib/errors';
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -23,8 +24,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     return NextResponse.json({ order: data });
-  } catch {
-    return NextResponse.json({ error: 'Failed to fetch order' }, { status: 500 });
+  } catch (err) {
+    console.error('GET /api/orders/[id]:', err);
+    return NextResponse.json({ error: errorMessage(err, 'Failed to fetch order') }, { status: 500 });
   }
 }
 
@@ -56,9 +58,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       .eq('id', id)
       .select()
       .single();
-    if (error || !data) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    if (error) {
+      console.error('PUT /api/orders/[id]:', error);
+      return NextResponse.json({ error: errorMessage(error, 'Failed to update order') }, { status: 500 });
+    }
+    if (!data) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     return NextResponse.json({ order: data });
-  } catch {
-    return NextResponse.json({ error: 'Failed to update order' }, { status: 500 });
+  } catch (err) {
+    console.error('PUT /api/orders/[id]:', err);
+    return NextResponse.json({ error: errorMessage(err, 'Failed to update order') }, { status: 500 });
   }
 }

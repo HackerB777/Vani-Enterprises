@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { errorMessage } from '@/lib/errors';
 
 interface DeliveryMetrics {
   totalOrders: number;
@@ -97,7 +98,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ metrics });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Failed to fetch delivery analytics';
+    const msg = errorMessage(err, 'Failed to fetch delivery analytics');
     console.error('GET /api/analytics/deliveries:', msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }

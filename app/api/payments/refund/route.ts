@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { errorMessage } from '@/lib/errors';
 
 export async function POST(request: NextRequest) {
   try {
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Refund failed: ${msg}` }, { status: 500 });
     }
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Refund processing failed';
+    const msg = errorMessage(err, 'Refund processing failed');
     console.error('POST /api/payments/refund:', msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }

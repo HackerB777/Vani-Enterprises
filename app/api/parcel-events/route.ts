@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { errorMessage } from '@/lib/errors';
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
     if (error) throw error;
     return NextResponse.json({ events: data ?? [] });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Failed to fetch parcel events';
+    const msg = errorMessage(err, 'Failed to fetch parcel events');
     console.error('GET /api/parcel-events:', msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
     if (error) throw error;
     return NextResponse.json({ event: data }, { status: 201 });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Failed to create parcel event';
+    const msg = errorMessage(err, 'Failed to create parcel event');
     console.error('POST /api/parcel-events:', msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { errorMessage } from '@/lib/errors';
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
       currency:        rzpOrder.currency,
     });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Failed to create Razorpay order';
+    const msg = errorMessage(err, 'Failed to create Razorpay order');
     console.error('POST /api/payments/create-order:', msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }

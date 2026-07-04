@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { errorMessage } from '@/lib/errors';
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, order: updatedOrder });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Payment verification failed';
+    const msg = errorMessage(err, 'Payment verification failed');
     console.error('POST /api/payments/verify:', msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
