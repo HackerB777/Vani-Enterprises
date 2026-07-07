@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useCartStore } from '@/store/cartStore';
 import { categoryGradients } from '@/lib/products';
 
@@ -27,9 +27,14 @@ export default function CartPage() {
   } | null>(null);
   const [couponMsg, setCouponMsg] = useState<{ text: string; ok: boolean } | null>(null);
   const [applying, setApplying] = useState(false);
+  const [shippingConfig, setShippingConfig] = useState({ freeShippingEnabled: false, shippingCost: 99 });
+
+  useEffect(() => {
+    fetch('/api/shipping-settings').then((r) => r.json()).then(setShippingConfig).catch(() => {});
+  }, []);
 
   const subtotal  = useMemo(() => items.reduce((sum, i) => sum + i.product.price * i.quantity, 0), [items]);
-  const shipping  = subtotal >= 999 || subtotal === 0 ? 0 : 99;
+  const shipping  = subtotal === 0 || shippingConfig.freeShippingEnabled ? 0 : shippingConfig.shippingCost;
   const tax       = Math.round(subtotal * 0.05);
   const discount  = useMemo(() => {
     if (!appliedCoupon) return 0;
@@ -266,12 +271,6 @@ export default function CartPage() {
                     </div>
                   )}
                 </div>
-
-                {shipping > 0 && (
-                  <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                    Add ₹{(999 - subtotal).toLocaleString('en-IN')} more for free shipping
-                  </p>
-                )}
 
                 <div className="my-4 border-t border-stone-100" />
 

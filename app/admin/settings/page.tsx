@@ -36,12 +36,19 @@ export default function AdminSettingsPage() {
   const [numStatus, setNumStatus]             = useState<{ ok: boolean; msg: string } | null>(null);
   const [numLoading, setNumLoading]           = useState(false);
 
+  const [freeShippingEnabled, setFreeShippingEnabled] = useState(false);
+  const [shippingCost, setShippingCost]               = useState('99');
+  const [shipStatus, setShipStatus]                   = useState<{ ok: boolean; msg: string } | null>(null);
+  const [shipLoading, setShipLoading]                 = useState(false);
+
   useEffect(() => {
     fetch('/api/settings')
       .then((r) => r.json())
       .then((data) => {
         setAdminMobile(data.adminMobile ?? '');
         setDeveloperMobile(data.developerMobile ?? '');
+        setFreeShippingEnabled(data.freeShippingEnabled ?? false);
+        setShippingCost(String(data.shippingCost ?? 99));
       })
       .catch(() => {});
   }, []);
@@ -91,6 +98,29 @@ export default function AdminSettingsPage() {
       setNumStatus({ ok: false, msg: 'Failed to save. Try again.' });
     } finally {
       setNumLoading(false);
+    }
+  }
+
+  async function handleShippingSave(e: React.FormEvent) {
+    e.preventDefault();
+    setShipStatus(null);
+    if (!freeShippingEnabled && (!shippingCost || Number(shippingCost) < 0)) {
+      setShipStatus({ ok: false, msg: 'Enter a valid shipping cost.' });
+      return;
+    }
+    setShipLoading(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ freeShippingEnabled, shippingCost: Number(shippingCost) }),
+      });
+      if (!res.ok) throw new Error('Failed to save.');
+      setShipStatus({ ok: true, msg: 'Shipping settings saved.' });
+    } catch {
+      setShipStatus({ ok: false, msg: 'Failed to save. Try again.' });
+    } finally {
+      setShipLoading(false);
     }
   }
 
@@ -150,6 +180,52 @@ export default function AdminSettingsPage() {
           <button type="submit" disabled={numLoading}
             className="rounded-full bg-stone-900 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60">
             {numLoading ? 'Saving…' : 'Save Numbers'}
+          </button>
+        </form>
+      </Section>
+
+      <Section title="Shipping">
+        <form onSubmit={handleShippingSave} className="space-y-4">
+          <div className="flex items-center justify-between rounded-xl border border-stone-100 bg-stone-50 px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold text-stone-700">Free Shipping</p>
+              <p className="text-xs text-stone-400">When on, every order ships free regardless of cart total.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFreeShippingEnabled((v) => !v)}
+              role="switch"
+              aria-checked={freeShippingEnabled ? 'true' : 'false'}
+              aria-label="Free shipping"
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors ${freeShippingEnabled ? 'bg-brand-600' : 'bg-stone-300'}`}
+            >
+              <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform ${freeShippingEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </div>
+
+          <Field label="Shipping Cost (₹)">
+            <input
+              type="number" min="0" step="1"
+              value={shippingCost}
+              onChange={(e) => setShippingCost(e.target.value)}
+              disabled={freeShippingEnabled}
+              placeholder="99"
+              className={`${inputCls} disabled:cursor-not-allowed disabled:opacity-50`}
+            />
+            <span className="mt-1 block text-[11px] text-stone-400">
+              {freeShippingEnabled ? 'Ignored while free shipping is on.' : 'Charged on every order at checkout.'}
+            </span>
+          </Field>
+
+          {shipStatus && (
+            <div className={`rounded-xl px-4 py-3 text-sm ${shipStatus.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+              {shipStatus.msg}
+            </div>
+          )}
+
+          <button type="submit" disabled={shipLoading}
+            className="rounded-full bg-stone-900 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60">
+            {shipLoading ? 'Saving…' : 'Save Shipping Settings'}
           </button>
         </form>
       </Section>

@@ -1,7 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { createOrderPayload } from '@/lib/orders';
+import { createOrderPayload, DEFAULT_SHIPPING_CONFIG } from '@/lib/orders';
 import type { IProduct } from '@/lib/models/Product';
 import { getSupabaseAdmin } from '@/lib/supabase';
 
@@ -48,8 +48,18 @@ export async function POST(request: NextRequest) {
       total:    item.product.price * item.quantity,
     }));
 
+    const { data: settings } = await supabase
+      .from('settings')
+      .select('freeShippingEnabled, shippingCost')
+      .eq('id', 'main')
+      .maybeSingle();
+    const shippingConfig = {
+      freeShippingEnabled: settings?.freeShippingEnabled ?? DEFAULT_SHIPPING_CONFIG.freeShippingEnabled,
+      shippingCost:        settings?.shippingCost        ?? DEFAULT_SHIPPING_CONFIG.shippingCost,
+    };
+
     const orderData = {
-      ...createOrderPayload(orderItems, shippingAddress, paymentMethod, safeDiscount),
+      ...createOrderPayload(orderItems, shippingAddress, paymentMethod, safeDiscount, shippingConfig),
       userId: (session?.user as { id?: string })?.id ?? null,
     };
 

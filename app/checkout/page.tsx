@@ -66,6 +66,11 @@ export default function CheckoutPage() {
   const [applying, setApplying]   = useState(false);
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
+  const [shippingConfig, setShippingConfig] = useState({ freeShippingEnabled: false, shippingCost: 99 });
+
+  useEffect(() => {
+    fetch('/api/shipping-settings').then((r) => r.json()).then(setShippingConfig).catch(() => {});
+  }, []);
 
   const [savedAddresses, setSavedAddresses]   = useState<AddressRecord[]>([]);
   const [addressesLoading, setAddressesLoading] = useState(true);
@@ -113,7 +118,7 @@ export default function CheckoutPage() {
   }, []);
 
   const subtotal = useMemo(() => items.reduce((s, i) => s + i.product.price * i.quantity, 0), [items]);
-  const shipping = subtotal >= 999 || subtotal === 0 ? 0 : 99;
+  const shipping = subtotal === 0 || shippingConfig.freeShippingEnabled ? 0 : shippingConfig.shippingCost;
   const tax      = Math.round(subtotal * 0.05);
 
   const discount = useMemo(() => {

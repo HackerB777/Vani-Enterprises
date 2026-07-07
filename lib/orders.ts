@@ -78,14 +78,22 @@ export function calculateSubtotal(items: OrderItem[]) {
   return items.reduce((sum, item) => sum + item.total, 0);
 }
 
+export interface ShippingConfig {
+  freeShippingEnabled: boolean;
+  shippingCost: number;
+}
+
+export const DEFAULT_SHIPPING_CONFIG: ShippingConfig = { freeShippingEnabled: false, shippingCost: 99 };
+
 export function createOrderPayload(
   items: OrderItem[],
   shippingAddress: ShippingAddress,
   paymentMethod: 'razorpay' | 'cod',
   discount = 0,
+  shippingConfig: ShippingConfig = DEFAULT_SHIPPING_CONFIG,
 ): Order {
   const subtotal       = calculateSubtotal(items);
-  const shippingCharge = subtotal >= 999 ? 0 : 99;
+  const shippingCharge = shippingConfig.freeShippingEnabled ? 0 : shippingConfig.shippingCost;
   const tax            = Math.round(subtotal * 0.05);
   const total          = Math.max(0, subtotal + shippingCharge + tax - discount);
 
