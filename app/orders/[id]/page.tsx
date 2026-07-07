@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { CANCELLABLE_STATUSES } from '@/lib/orders';
 import type { ParcelEvent, Shipment } from '@/lib/orders';
 import { ParcelTrackingTimeline } from '@/components/store/ParcelTrackingTimeline';
 
 interface OrderItem {
-  product: { slug: string; name: string; price: number };
+  product: { slug: string; name: string; price: number; images?: string[] };
   quantity: number;
   total: number;
 }
@@ -263,7 +264,13 @@ export default function OrderDetailPage() {
               <div className="space-y-4">
                 {order.items.map((item) => (
                   <div key={item.product.slug} className="flex items-center gap-4 rounded-xl bg-stone-50 p-4">
-                    <div className="h-14 w-14 flex-shrink-0 rounded-xl bg-stone-200" />
+                    <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-xl bg-stone-200">
+                      {item.product.images?.[0] ? (
+                        <Image src={item.product.images[0]} alt={item.product.name} fill className="object-contain p-1" sizes="56px" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-xl text-stone-400" aria-hidden="true">🛍️</div>
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-stone-900 truncate">{item.product.name}</p>
                       <p className="text-xs text-stone-500">Qty: {item.quantity} × ₹{item.product.price.toLocaleString('en-IN')}</p>

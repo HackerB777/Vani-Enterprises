@@ -138,8 +138,8 @@ export default function AccountPage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'orders') fetchOrders();
-  }, [activeTab, fetchOrders]);
+    if (status === 'authenticated') fetchOrders();
+  }, [status, fetchOrders]);
 
   function loadAddresses() {
     fetch('/api/addresses')

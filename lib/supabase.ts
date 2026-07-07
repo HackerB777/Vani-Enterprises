@@ -14,7 +14,15 @@ function anonKey(): string {
 }
 
 function serviceKey(): string {
-  return process.env.SUPABASE_SERVICE_ROLE_KEY || anonKey();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key) {
+    throw new Error(
+      'SUPABASE_SERVICE_ROLE_KEY is not set. The admin client cannot silently fall back to the ' +
+        'anon key because RLS blocks anon writes/reads on these tables — set this env var in the ' +
+        'deployment environment.',
+    );
+  }
+  return key;
 }
 
 /* ── Public client (browser + server components) ─────────── */
